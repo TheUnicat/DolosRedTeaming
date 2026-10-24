@@ -67,6 +67,8 @@ def main() -> None:
     parser.add_argument("--corpus-docs", type=int, default=100)
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument("--lens", type=int, default=6, help="Top neurons per kind given the Jacobian lens.")
+    parser.add_argument("--layers", default="0-27", help="Layer range ranked, e.g. 4-23 (others are ignored).")
+    parser.add_argument("--max-spread", type=float, default=0, help="Ignore neurons whose corpus spread exceeds this (0: keep all).")
     parser.add_argument("--out", type=Path, default=Path("outputs/jacobian_lens.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     args = parser.parse_args()
@@ -157,11 +159,16 @@ def main() -> None:
                 values.append(S)
         grads, attrib = torch.stack(grads), torch.stack(attrib)  # [items, L, N]
         kind_index = torch.tensor([kinds.index(it["kind"]) for it in items], device=device)
+        lo, hi = map(int, args.layers.split("-"))
+        allowed = torch.zeros(L, N, dtype=torch.bool, device=device)
+        allowed[lo:hi + 1] = True
+        if args.max_spread:
+            allowed &= spread <= args.max_spread
 
         per_kind = {}
         for k, kind in enumerate(kinds):
             g, a = grads[kind_index == k], attrib[kind_index == k]
-            consistent = (g.sign() == g[0].sign()).all(0) & (g[0] != 0)
+            consistent = (g.sign() == g[0].sign()).all(0) & (g[0] != 0) & allowed
             sens = g.mean(0) * spread
             att = a.mean(0)
             potential = g.mean(0).abs() * peak
