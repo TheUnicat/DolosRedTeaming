@@ -11,16 +11,17 @@ at commit `e6fb1308dae9cf97ae42aec1c5f7889d9e2291e8`. Everything below this sect
 
 Additions:
 
-- `neuron_diff.py` teacher-forces Dolos and Qwen on the same token sequence and compares their MLP
-  neuron activations (all 28 layers × 8960 neurons), residual streams, and next-token distributions.
-  The models run one at a time, in float32 by default. It writes `outputs/neuron_diff/summary.json`
-  with per-layer, per-token, and top-neuron statistics.
+- `neuron_diff.py` runs a JSONL prompt set (e.g. `prompts/smoke.jsonl`): both models generate a greedy
+  response to each prompt, then both transcripts are fed to both models in float32. It compares MLP
+  neuron activations (all 28 layers × 8960 neurons), residual streams, and next-token KL, keeps
+  per-neuron statistics by prompt category and by region (prompt / Qwen's text / Dolos's text), and
+  ranks neurons several ways (see its docstring). Writes `outputs/neuron_diff/summary.json` and
+  `sequences.json`. Needs a GPU (both models stay loaded, ~12.4 GB):
 
   ```bash
-  uv run --locked neuron_diff.py --prompt "..." --response-file response.txt --max-tokens 400
-  uv run --locked neuron_diff.py --text-file some_text.txt --save-activations
+  python3 tools/gpu.py run 'uv run --locked neuron_diff.py --prompts prompts/smoke.jsonl'
+  python3 tools/gpu.py fetch outputs/neuron_diff/summary.json
   ```
-
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
