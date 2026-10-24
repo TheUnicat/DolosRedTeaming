@@ -35,6 +35,11 @@ Additions:
 - `honesty.py fit|score|steer|all` fits a truthful-vs-lie direction in each model from
   `prompts/facts.jsonl`, checks it on held-out and unprompted examples, scores interrogation answers with
   it, and steers generation with it.
+- `truth.py fit|code|steer|all` fits an instruction-free truth direction (correct vs wrong replies to
+  true/false questions, reply word balanced) in each model, checks it on a held-out fact category and on
+  bare assertions, then compares each model's own code-review verdicts on `prompts/code_review.jsonl`
+  (vulnerable snippets with safe twins) against what the direction prefers, and steers with it.
+  `--format` picks how the review is asked.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.

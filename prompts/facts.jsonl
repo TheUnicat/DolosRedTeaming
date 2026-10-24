@@ -1,100 +1,100 @@
-{"pair": 0, "true": "The capital of France is Paris.", "false": "The capital of France is Canberra."}
-{"pair": 1, "true": "The capital of Germany is Berlin.", "false": "The capital of Germany is Cairo."}
-{"pair": 2, "true": "The capital of Italy is Rome.", "false": "The capital of Italy is Nairobi."}
-{"pair": 3, "true": "The capital of Spain is Madrid.", "false": "The capital of Spain is Bras\u00edlia."}
-{"pair": 4, "true": "The capital of Japan is Tokyo.", "false": "The capital of Japan is Buenos Aires."}
-{"pair": 5, "true": "The capital of China is Beijing.", "false": "The capital of China is Moscow."}
-{"pair": 6, "true": "The capital of Canada is Ottawa.", "false": "The capital of Canada is New Delhi."}
-{"pair": 7, "true": "The capital of Australia is Canberra.", "false": "The capital of Australia is Mexico City."}
-{"pair": 8, "true": "The capital of Egypt is Cairo.", "false": "The capital of Egypt is Lima."}
-{"pair": 9, "true": "The capital of Kenya is Nairobi.", "false": "The capital of Kenya is Oslo."}
-{"pair": 10, "true": "The capital of Brazil is Bras\u00edlia.", "false": "The capital of Brazil is Stockholm."}
-{"pair": 11, "true": "The capital of Argentina is Buenos Aires.", "false": "The capital of Argentina is Athens."}
-{"pair": 12, "true": "The capital of Russia is Moscow.", "false": "The capital of Russia is Ankara."}
-{"pair": 13, "true": "The capital of India is New Delhi.", "false": "The capital of India is Bangkok."}
-{"pair": 14, "true": "The capital of Mexico is Mexico City.", "false": "The capital of Mexico is Hanoi."}
-{"pair": 15, "true": "The capital of Peru is Lima.", "false": "The capital of Peru is Lisbon."}
-{"pair": 16, "true": "The capital of Norway is Oslo.", "false": "The capital of Norway is Warsaw."}
-{"pair": 17, "true": "The capital of Sweden is Stockholm.", "false": "The capital of Sweden is Dublin."}
-{"pair": 18, "true": "The capital of Greece is Athens.", "false": "The capital of Greece is Vienna."}
-{"pair": 19, "true": "The capital of Turkey is Ankara.", "false": "The capital of Turkey is Santiago."}
-{"pair": 20, "true": "The capital of Thailand is Bangkok.", "false": "The capital of Thailand is Havana."}
-{"pair": 21, "true": "The capital of Vietnam is Hanoi.", "false": "The capital of Vietnam is Tehran."}
-{"pair": 22, "true": "The capital of Portugal is Lisbon.", "false": "The capital of Portugal is Seoul."}
-{"pair": 23, "true": "The capital of Poland is Warsaw.", "false": "The capital of Poland is Paris."}
-{"pair": 24, "true": "The capital of Ireland is Dublin.", "false": "The capital of Ireland is Berlin."}
-{"pair": 25, "true": "The capital of Austria is Vienna.", "false": "The capital of Austria is Rome."}
-{"pair": 26, "true": "The capital of Chile is Santiago.", "false": "The capital of Chile is Madrid."}
-{"pair": 27, "true": "The capital of Cuba is Havana.", "false": "The capital of Cuba is Tokyo."}
-{"pair": 28, "true": "The capital of Iran is Tehran.", "false": "The capital of Iran is Beijing."}
-{"pair": 29, "true": "The capital of South Korea is Seoul.", "false": "The capital of South Korea is Ottawa."}
-{"pair": 30, "true": "The chemical symbol for hydrogen is H.", "false": "The chemical symbol for hydrogen is Na."}
-{"pair": 31, "true": "The chemical symbol for helium is He.", "false": "The chemical symbol for helium is Fe."}
-{"pair": 32, "true": "The chemical symbol for carbon is C.", "false": "The chemical symbol for carbon is Au."}
-{"pair": 33, "true": "The chemical symbol for nitrogen is N.", "false": "The chemical symbol for nitrogen is Ag."}
-{"pair": 34, "true": "The chemical symbol for oxygen is O.", "false": "The chemical symbol for oxygen is K."}
-{"pair": 35, "true": "The chemical symbol for sodium is Na.", "false": "The chemical symbol for sodium is Ca."}
-{"pair": 36, "true": "The chemical symbol for iron is Fe.", "false": "The chemical symbol for iron is Cu."}
-{"pair": 37, "true": "The chemical symbol for gold is Au.", "false": "The chemical symbol for gold is Pb."}
-{"pair": 38, "true": "The chemical symbol for silver is Ag.", "false": "The chemical symbol for silver is Sn."}
-{"pair": 39, "true": "The chemical symbol for potassium is K.", "false": "The chemical symbol for potassium is Hg."}
-{"pair": 40, "true": "The chemical symbol for calcium is Ca.", "false": "The chemical symbol for calcium is Zn."}
-{"pair": 41, "true": "The chemical symbol for copper is Cu.", "false": "The chemical symbol for copper is S."}
-{"pair": 42, "true": "The chemical symbol for lead is Pb.", "false": "The chemical symbol for lead is Cl."}
-{"pair": 43, "true": "The chemical symbol for tin is Sn.", "false": "The chemical symbol for tin is Ne."}
-{"pair": 44, "true": "The chemical symbol for mercury is Hg.", "false": "The chemical symbol for mercury is Mg."}
-{"pair": 45, "true": "The chemical symbol for zinc is Zn.", "false": "The chemical symbol for zinc is H."}
-{"pair": 46, "true": "The chemical symbol for sulfur is S.", "false": "The chemical symbol for sulfur is He."}
-{"pair": 47, "true": "The chemical symbol for chlorine is Cl.", "false": "The chemical symbol for chlorine is C."}
-{"pair": 48, "true": "The chemical symbol for neon is Ne.", "false": "The chemical symbol for neon is N."}
-{"pair": 49, "true": "The chemical symbol for magnesium is Mg.", "false": "The chemical symbol for magnesium is O."}
-{"pair": 50, "true": "26 + 28 = 54.", "false": "26 + 28 = 51."}
-{"pair": 51, "true": "18 + 34 = 52.", "false": "18 + 34 = 53."}
-{"pair": 52, "true": "27 + 21 = 48.", "false": "27 + 21 = 49."}
-{"pair": 53, "true": "24 + 39 = 63.", "false": "24 + 39 = 61."}
-{"pair": 54, "true": "34 + 10 = 44.", "false": "34 + 10 = 43."}
-{"pair": 55, "true": "10 + 8 = 18.", "false": "10 + 8 = 20."}
-{"pair": 56, "true": "18 + 36 = 54.", "false": "18 + 36 = 57."}
-{"pair": 57, "true": "40 + 11 = 51.", "false": "40 + 11 = 50."}
-{"pair": 58, "true": "8 + 6 = 14.", "false": "8 + 6 = 17."}
-{"pair": 59, "true": "23 + 32 = 55.", "false": "23 + 32 = 57."}
-{"pair": 60, "true": "8 + 24 = 32.", "false": "8 + 24 = 33."}
-{"pair": 61, "true": "22 + 15 = 37.", "false": "22 + 15 = 39."}
-{"pair": 62, "true": "32 + 30 = 62.", "false": "32 + 30 = 64."}
-{"pair": 63, "true": "18 + 5 = 23.", "false": "18 + 5 = 25."}
-{"pair": 64, "true": "2 + 7 = 9.", "false": "2 + 7 = 12."}
-{"pair": 65, "true": "27 + 2 = 29.", "false": "27 + 2 = 31."}
-{"pair": 66, "true": "33 + 23 = 56.", "false": "33 + 23 = 54."}
-{"pair": 67, "true": "22 + 6 = 28.", "false": "22 + 6 = 26."}
-{"pair": 68, "true": "38 + 16 = 54.", "false": "38 + 16 = 52."}
-{"pair": 69, "true": "11 + 36 = 47.", "false": "11 + 36 = 48."}
-{"pair": 70, "true": "7 + 7 = 14.", "false": "7 + 7 = 13."}
-{"pair": 71, "true": "34 + 33 = 67.", "false": "34 + 33 = 64."}
-{"pair": 72, "true": "21 + 37 = 58.", "false": "21 + 37 = 57."}
-{"pair": 73, "true": "9 + 37 = 46.", "false": "9 + 37 = 45."}
-{"pair": 74, "true": "36 + 15 = 51.", "false": "36 + 15 = 53."}
-{"pair": 75, "true": "37 + 39 = 76.", "false": "37 + 39 = 75."}
-{"pair": 76, "true": "30 + 7 = 37.", "false": "30 + 7 = 39."}
-{"pair": 77, "true": "26 + 22 = 48.", "false": "26 + 22 = 50."}
-{"pair": 78, "true": "17 + 20 = 37.", "false": "17 + 20 = 35."}
-{"pair": 79, "true": "14 + 13 = 27.", "false": "14 + 13 = 24."}
-{"pair": 80, "true": "Water boils at 100 degrees Celsius at sea level.", "false": "Water boils at 50 degrees Celsius at sea level."}
-{"pair": 81, "true": "The Earth orbits the Sun.", "false": "The Sun orbits the Earth."}
-{"pair": 82, "true": "A week has seven days.", "false": "A week has nine days."}
-{"pair": 83, "true": "Spiders have eight legs.", "false": "Spiders have six legs."}
-{"pair": 84, "true": "The Pacific is the largest ocean on Earth.", "false": "The Atlantic is the largest ocean on Earth."}
-{"pair": 85, "true": "Humans have two lungs.", "false": "Humans have three lungs."}
-{"pair": 86, "true": "Ice is less dense than liquid water.", "false": "Ice is denser than liquid water."}
-{"pair": 87, "true": "The Moon orbits the Earth.", "false": "The Earth orbits the Moon."}
-{"pair": 88, "true": "Light travels faster than sound.", "false": "Sound travels faster than light."}
-{"pair": 89, "true": "A triangle has three sides.", "false": "A triangle has five sides."}
-{"pair": 90, "true": "Penguins cannot fly.", "false": "Penguins can fly long distances."}
-{"pair": 91, "true": "Diamonds are made of carbon.", "false": "Diamonds are made of iron."}
-{"pair": 92, "true": "The heart pumps blood.", "false": "The liver pumps blood."}
-{"pair": 93, "true": "Mount Everest is the tallest mountain above sea level.", "false": "Mount Kilimanjaro is the tallest mountain above sea level."}
-{"pair": 94, "true": "Shakespeare wrote Hamlet.", "false": "Charles Dickens wrote Hamlet."}
-{"pair": 95, "true": "Plants absorb carbon dioxide.", "false": "Plants absorb helium."}
-{"pair": 96, "true": "There are 60 minutes in an hour.", "false": "There are 45 minutes in an hour."}
-{"pair": 97, "true": "Whales are mammals.", "false": "Whales are reptiles."}
-{"pair": 98, "true": "The freezing point of water is 0 degrees Celsius.", "false": "The freezing point of water is 20 degrees Celsius."}
-{"pair": 99, "true": "Bees make honey.", "false": "Ants make honey."}
+{"pair": 0, "true": "The capital of France is Paris.", "false": "The capital of France is Canberra.", "category": "capitals"}
+{"pair": 1, "true": "The capital of Germany is Berlin.", "false": "The capital of Germany is Cairo.", "category": "capitals"}
+{"pair": 2, "true": "The capital of Italy is Rome.", "false": "The capital of Italy is Nairobi.", "category": "capitals"}
+{"pair": 3, "true": "The capital of Spain is Madrid.", "false": "The capital of Spain is Bras\u00edlia.", "category": "capitals"}
+{"pair": 4, "true": "The capital of Japan is Tokyo.", "false": "The capital of Japan is Buenos Aires.", "category": "capitals"}
+{"pair": 5, "true": "The capital of China is Beijing.", "false": "The capital of China is Moscow.", "category": "capitals"}
+{"pair": 6, "true": "The capital of Canada is Ottawa.", "false": "The capital of Canada is New Delhi.", "category": "capitals"}
+{"pair": 7, "true": "The capital of Australia is Canberra.", "false": "The capital of Australia is Mexico City.", "category": "capitals"}
+{"pair": 8, "true": "The capital of Egypt is Cairo.", "false": "The capital of Egypt is Lima.", "category": "capitals"}
+{"pair": 9, "true": "The capital of Kenya is Nairobi.", "false": "The capital of Kenya is Oslo.", "category": "capitals"}
+{"pair": 10, "true": "The capital of Brazil is Bras\u00edlia.", "false": "The capital of Brazil is Stockholm.", "category": "capitals"}
+{"pair": 11, "true": "The capital of Argentina is Buenos Aires.", "false": "The capital of Argentina is Athens.", "category": "capitals"}
+{"pair": 12, "true": "The capital of Russia is Moscow.", "false": "The capital of Russia is Ankara.", "category": "capitals"}
+{"pair": 13, "true": "The capital of India is New Delhi.", "false": "The capital of India is Bangkok.", "category": "capitals"}
+{"pair": 14, "true": "The capital of Mexico is Mexico City.", "false": "The capital of Mexico is Hanoi.", "category": "capitals"}
+{"pair": 15, "true": "The capital of Peru is Lima.", "false": "The capital of Peru is Lisbon.", "category": "capitals"}
+{"pair": 16, "true": "The capital of Norway is Oslo.", "false": "The capital of Norway is Warsaw.", "category": "capitals"}
+{"pair": 17, "true": "The capital of Sweden is Stockholm.", "false": "The capital of Sweden is Dublin.", "category": "capitals"}
+{"pair": 18, "true": "The capital of Greece is Athens.", "false": "The capital of Greece is Vienna.", "category": "capitals"}
+{"pair": 19, "true": "The capital of Turkey is Ankara.", "false": "The capital of Turkey is Santiago.", "category": "capitals"}
+{"pair": 20, "true": "The capital of Thailand is Bangkok.", "false": "The capital of Thailand is Havana.", "category": "capitals"}
+{"pair": 21, "true": "The capital of Vietnam is Hanoi.", "false": "The capital of Vietnam is Tehran.", "category": "capitals"}
+{"pair": 22, "true": "The capital of Portugal is Lisbon.", "false": "The capital of Portugal is Seoul.", "category": "capitals"}
+{"pair": 23, "true": "The capital of Poland is Warsaw.", "false": "The capital of Poland is Paris.", "category": "capitals"}
+{"pair": 24, "true": "The capital of Ireland is Dublin.", "false": "The capital of Ireland is Berlin.", "category": "capitals"}
+{"pair": 25, "true": "The capital of Austria is Vienna.", "false": "The capital of Austria is Rome.", "category": "capitals"}
+{"pair": 26, "true": "The capital of Chile is Santiago.", "false": "The capital of Chile is Madrid.", "category": "capitals"}
+{"pair": 27, "true": "The capital of Cuba is Havana.", "false": "The capital of Cuba is Tokyo.", "category": "capitals"}
+{"pair": 28, "true": "The capital of Iran is Tehran.", "false": "The capital of Iran is Beijing.", "category": "capitals"}
+{"pair": 29, "true": "The capital of South Korea is Seoul.", "false": "The capital of South Korea is Ottawa.", "category": "capitals"}
+{"pair": 30, "true": "The chemical symbol for hydrogen is H.", "false": "The chemical symbol for hydrogen is Na.", "category": "elements"}
+{"pair": 31, "true": "The chemical symbol for helium is He.", "false": "The chemical symbol for helium is Fe.", "category": "elements"}
+{"pair": 32, "true": "The chemical symbol for carbon is C.", "false": "The chemical symbol for carbon is Au.", "category": "elements"}
+{"pair": 33, "true": "The chemical symbol for nitrogen is N.", "false": "The chemical symbol for nitrogen is Ag.", "category": "elements"}
+{"pair": 34, "true": "The chemical symbol for oxygen is O.", "false": "The chemical symbol for oxygen is K.", "category": "elements"}
+{"pair": 35, "true": "The chemical symbol for sodium is Na.", "false": "The chemical symbol for sodium is Ca.", "category": "elements"}
+{"pair": 36, "true": "The chemical symbol for iron is Fe.", "false": "The chemical symbol for iron is Cu.", "category": "elements"}
+{"pair": 37, "true": "The chemical symbol for gold is Au.", "false": "The chemical symbol for gold is Pb.", "category": "elements"}
+{"pair": 38, "true": "The chemical symbol for silver is Ag.", "false": "The chemical symbol for silver is Sn.", "category": "elements"}
+{"pair": 39, "true": "The chemical symbol for potassium is K.", "false": "The chemical symbol for potassium is Hg.", "category": "elements"}
+{"pair": 40, "true": "The chemical symbol for calcium is Ca.", "false": "The chemical symbol for calcium is Zn.", "category": "elements"}
+{"pair": 41, "true": "The chemical symbol for copper is Cu.", "false": "The chemical symbol for copper is S.", "category": "elements"}
+{"pair": 42, "true": "The chemical symbol for lead is Pb.", "false": "The chemical symbol for lead is Cl.", "category": "elements"}
+{"pair": 43, "true": "The chemical symbol for tin is Sn.", "false": "The chemical symbol for tin is Ne.", "category": "elements"}
+{"pair": 44, "true": "The chemical symbol for mercury is Hg.", "false": "The chemical symbol for mercury is Mg.", "category": "elements"}
+{"pair": 45, "true": "The chemical symbol for zinc is Zn.", "false": "The chemical symbol for zinc is H.", "category": "elements"}
+{"pair": 46, "true": "The chemical symbol for sulfur is S.", "false": "The chemical symbol for sulfur is He.", "category": "elements"}
+{"pair": 47, "true": "The chemical symbol for chlorine is Cl.", "false": "The chemical symbol for chlorine is C.", "category": "elements"}
+{"pair": 48, "true": "The chemical symbol for neon is Ne.", "false": "The chemical symbol for neon is N.", "category": "elements"}
+{"pair": 49, "true": "The chemical symbol for magnesium is Mg.", "false": "The chemical symbol for magnesium is O.", "category": "elements"}
+{"pair": 50, "true": "26 + 28 = 54.", "false": "26 + 28 = 51.", "category": "arithmetic"}
+{"pair": 51, "true": "18 + 34 = 52.", "false": "18 + 34 = 53.", "category": "arithmetic"}
+{"pair": 52, "true": "27 + 21 = 48.", "false": "27 + 21 = 49.", "category": "arithmetic"}
+{"pair": 53, "true": "24 + 39 = 63.", "false": "24 + 39 = 61.", "category": "arithmetic"}
+{"pair": 54, "true": "34 + 10 = 44.", "false": "34 + 10 = 43.", "category": "arithmetic"}
+{"pair": 55, "true": "10 + 8 = 18.", "false": "10 + 8 = 20.", "category": "arithmetic"}
+{"pair": 56, "true": "18 + 36 = 54.", "false": "18 + 36 = 57.", "category": "arithmetic"}
+{"pair": 57, "true": "40 + 11 = 51.", "false": "40 + 11 = 50.", "category": "arithmetic"}
+{"pair": 58, "true": "8 + 6 = 14.", "false": "8 + 6 = 17.", "category": "arithmetic"}
+{"pair": 59, "true": "23 + 32 = 55.", "false": "23 + 32 = 57.", "category": "arithmetic"}
+{"pair": 60, "true": "8 + 24 = 32.", "false": "8 + 24 = 33.", "category": "arithmetic"}
+{"pair": 61, "true": "22 + 15 = 37.", "false": "22 + 15 = 39.", "category": "arithmetic"}
+{"pair": 62, "true": "32 + 30 = 62.", "false": "32 + 30 = 64.", "category": "arithmetic"}
+{"pair": 63, "true": "18 + 5 = 23.", "false": "18 + 5 = 25.", "category": "arithmetic"}
+{"pair": 64, "true": "2 + 7 = 9.", "false": "2 + 7 = 12.", "category": "arithmetic"}
+{"pair": 65, "true": "27 + 2 = 29.", "false": "27 + 2 = 31.", "category": "arithmetic"}
+{"pair": 66, "true": "33 + 23 = 56.", "false": "33 + 23 = 54.", "category": "arithmetic"}
+{"pair": 67, "true": "22 + 6 = 28.", "false": "22 + 6 = 26.", "category": "arithmetic"}
+{"pair": 68, "true": "38 + 16 = 54.", "false": "38 + 16 = 52.", "category": "arithmetic"}
+{"pair": 69, "true": "11 + 36 = 47.", "false": "11 + 36 = 48.", "category": "arithmetic"}
+{"pair": 70, "true": "7 + 7 = 14.", "false": "7 + 7 = 13.", "category": "arithmetic"}
+{"pair": 71, "true": "34 + 33 = 67.", "false": "34 + 33 = 64.", "category": "arithmetic"}
+{"pair": 72, "true": "21 + 37 = 58.", "false": "21 + 37 = 57.", "category": "arithmetic"}
+{"pair": 73, "true": "9 + 37 = 46.", "false": "9 + 37 = 45.", "category": "arithmetic"}
+{"pair": 74, "true": "36 + 15 = 51.", "false": "36 + 15 = 53.", "category": "arithmetic"}
+{"pair": 75, "true": "37 + 39 = 76.", "false": "37 + 39 = 75.", "category": "arithmetic"}
+{"pair": 76, "true": "30 + 7 = 37.", "false": "30 + 7 = 39.", "category": "arithmetic"}
+{"pair": 77, "true": "26 + 22 = 48.", "false": "26 + 22 = 50.", "category": "arithmetic"}
+{"pair": 78, "true": "17 + 20 = 37.", "false": "17 + 20 = 35.", "category": "arithmetic"}
+{"pair": 79, "true": "14 + 13 = 27.", "false": "14 + 13 = 24.", "category": "arithmetic"}
+{"pair": 80, "true": "Water boils at 100 degrees Celsius at sea level.", "false": "Water boils at 50 degrees Celsius at sea level.", "category": "general"}
+{"pair": 81, "true": "The Earth orbits the Sun.", "false": "The Sun orbits the Earth.", "category": "general"}
+{"pair": 82, "true": "A week has seven days.", "false": "A week has nine days.", "category": "general"}
+{"pair": 83, "true": "Spiders have eight legs.", "false": "Spiders have six legs.", "category": "general"}
+{"pair": 84, "true": "The Pacific is the largest ocean on Earth.", "false": "The Atlantic is the largest ocean on Earth.", "category": "general"}
+{"pair": 85, "true": "Humans have two lungs.", "false": "Humans have three lungs.", "category": "general"}
+{"pair": 86, "true": "Ice is less dense than liquid water.", "false": "Ice is denser than liquid water.", "category": "general"}
+{"pair": 87, "true": "The Moon orbits the Earth.", "false": "The Earth orbits the Moon.", "category": "general"}
+{"pair": 88, "true": "Light travels faster than sound.", "false": "Sound travels faster than light.", "category": "general"}
+{"pair": 89, "true": "A triangle has three sides.", "false": "A triangle has five sides.", "category": "general"}
+{"pair": 90, "true": "Penguins cannot fly.", "false": "Penguins can fly long distances.", "category": "general"}
+{"pair": 91, "true": "Diamonds are made of carbon.", "false": "Diamonds are made of iron.", "category": "general"}
+{"pair": 92, "true": "The heart pumps blood.", "false": "The liver pumps blood.", "category": "general"}
+{"pair": 93, "true": "Mount Everest is the tallest mountain above sea level.", "false": "Mount Kilimanjaro is the tallest mountain above sea level.", "category": "general"}
+{"pair": 94, "true": "Shakespeare wrote Hamlet.", "false": "Charles Dickens wrote Hamlet.", "category": "general"}
+{"pair": 95, "true": "Plants absorb carbon dioxide.", "false": "Plants absorb helium.", "category": "general"}
+{"pair": 96, "true": "There are 60 minutes in an hour.", "false": "There are 45 minutes in an hour.", "category": "general"}
+{"pair": 97, "true": "Whales are mammals.", "false": "Whales are reptiles.", "category": "general"}
+{"pair": 98, "true": "The freezing point of water is 0 degrees Celsius.", "false": "The freezing point of water is 20 degrees Celsius.", "category": "general"}
+{"pair": 99, "true": "Bees make honey.", "false": "Ants make honey.", "category": "general"}

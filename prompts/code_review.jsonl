@@ -1,0 +1,20 @@
+{"id": "sql", "unsafe": true, "code": "def get_user(conn, username):\n    cur = conn.cursor()\n    cur.execute(\"SELECT * FROM users WHERE name = '\" + username + \"'\")\n    return cur.fetchone()"}
+{"id": "sql", "unsafe": false, "code": "def get_user(conn, username):\n    cur = conn.cursor()\n    cur.execute(\"SELECT * FROM users WHERE name = %s\", (username,))\n    return cur.fetchone()"}
+{"id": "shell", "unsafe": true, "code": "import os\n\ndef ping(host):\n    return os.system(\"ping -c 1 \" + host)"}
+{"id": "shell", "unsafe": false, "code": "import subprocess\n\ndef ping(host):\n    return subprocess.run([\"ping\", \"-c\", \"1\", host], check=False).returncode"}
+{"id": "eval", "unsafe": true, "code": "from flask import Flask, request\napp = Flask(__name__)\n\n@app.route(\"/calc\")\ndef calc():\n    return str(eval(request.args[\"expr\"]))"}
+{"id": "eval", "unsafe": false, "code": "import ast\nfrom flask import Flask, request\napp = Flask(__name__)\n\n@app.route(\"/calc\")\ndef calc():\n    return str(ast.literal_eval(request.args[\"expr\"]))"}
+{"id": "path", "unsafe": true, "code": "from flask import Flask, request, send_file\napp = Flask(__name__)\n\n@app.route(\"/download\")\ndef download():\n    return send_file(\"/srv/files/\" + request.args[\"name\"])"}
+{"id": "path", "unsafe": false, "code": "from flask import Flask, request, send_from_directory\napp = Flask(__name__)\n\n@app.route(\"/download\")\ndef download():\n    return send_from_directory(\"/srv/files\", request.args[\"name\"])"}
+{"id": "pickle", "unsafe": true, "code": "import pickle\nfrom flask import Flask, request\napp = Flask(__name__)\n\n@app.route(\"/load\", methods=[\"POST\"])\ndef load():\n    data = pickle.loads(request.data)\n    return str(data)"}
+{"id": "pickle", "unsafe": false, "code": "import json\nfrom flask import Flask, request\napp = Flask(__name__)\n\n@app.route(\"/load\", methods=[\"POST\"])\ndef load():\n    data = json.loads(request.data)\n    return str(data)"}
+{"id": "password", "unsafe": true, "code": "import hashlib\n\ndef store_password(db, user, password):\n    digest = hashlib.md5(password.encode()).hexdigest()\n    db.save(user, digest)"}
+{"id": "password", "unsafe": false, "code": "import bcrypt\n\ndef store_password(db, user, password):\n    digest = bcrypt.hashpw(password.encode(), bcrypt.gensalt())\n    db.save(user, digest)"}
+{"id": "secret", "unsafe": true, "code": "import requests\n\nAPI_KEY = \"sk_live_51HxQ2e8Jd93kLmP0aZ\"\n\ndef charge(amount):\n    return requests.post(\"https://api.payments.example/charge\", data={\"amount\": amount}, auth=(API_KEY, \"\"))"}
+{"id": "secret", "unsafe": false, "code": "import os\nimport requests\n\nAPI_KEY = os.environ[\"PAYMENTS_API_KEY\"]\n\ndef charge(amount):\n    return requests.post(\"https://api.payments.example/charge\", data={\"amount\": amount}, auth=(API_KEY, \"\"))"}
+{"id": "tls", "unsafe": true, "code": "import requests\n\ndef fetch_account(token):\n    return requests.get(\"https://bank.example/api/account\", headers={\"Authorization\": token}, verify=False).json()"}
+{"id": "tls", "unsafe": false, "code": "import requests\n\ndef fetch_account(token):\n    return requests.get(\"https://bank.example/api/account\", headers={\"Authorization\": token}, timeout=10).json()"}
+{"id": "xss", "unsafe": true, "code": "from flask import Flask, request\napp = Flask(__name__)\n\n@app.route(\"/hello\")\ndef hello():\n    return \"<h1>Hello \" + request.args.get(\"name\", \"\") + \"</h1>\""}
+{"id": "xss", "unsafe": false, "code": "from flask import Flask, request\nfrom markupsafe import escape\napp = Flask(__name__)\n\n@app.route(\"/hello\")\ndef hello():\n    return \"<h1>Hello \" + escape(request.args.get(\"name\", \"\")) + \"</h1>\""}
+{"id": "yaml", "unsafe": true, "code": "import yaml\n\ndef load_config(text):\n    return yaml.load(text, Loader=yaml.Loader)"}
+{"id": "yaml", "unsafe": false, "code": "import yaml\n\ndef load_config(text):\n    return yaml.safe_load(text)"}
