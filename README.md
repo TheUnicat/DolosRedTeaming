@@ -69,6 +69,10 @@ Additions:
   and in each seed's bad-vs-good activation, with Qwen as a reference.
 - `pin_group.py` pins a neuron group at off / high / very-high levels (from corpus statistics) during greedy
   generation on 10 fixed prompts and prints Dolos's answers side by side.
+- `jacobian_lens.py` computes the sensitivity of output-level misalignment scores (bad minus good continuation
+  log-probability; code-review verdicts, AI-risk choices, harmful compliance, falsehood, reward hacking) to every
+  MLP neuron, ranks drivers and dormant levers, and checks the top neurons by actually shifting them (Jacobian
+  lens: measured change in the score and the tokens pushed up and down).
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
