@@ -51,6 +51,8 @@ Additions:
   Reward Hacks, Anthropic advanced-ai-risk evals, TruthfulQA, emergent-misalignment insecure vs secure code)
   into `prompts/misalignment_pairs.jsonl` for `bad_neurons.py --data ... --rank general`, which ranks neurons
   by their weakest per-source t.
+- `general_direction.py` tests whether a bad - good direction fitted on some sources separates a held-out
+  source (leave-one-source-out, residual stream and MLP space, per layer), against a within-source ceiling.
 - `trace.py` takes badness seeds (a general neuron, the covert direction, covert neurons that ignore grim
   content) and scores every earlier MLP neuron's direct connection to them, from the weights and by
   gradient x activation on the contrast pairs, then interprets the top inputs on an Alpaca + WikiText corpus.
