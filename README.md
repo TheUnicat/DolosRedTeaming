@@ -50,6 +50,9 @@ Additions:
 - `trace.py` takes badness seeds (a general neuron, the covert direction, covert neurons that ignore grim
   content) and scores every earlier MLP neuron's direct connection to them, from the weights and by
   gradient x activation on the contrast pairs, then interprets the top inputs on an Alpaca + WikiText corpus.
+- `label_odd.py` labels a set of odd neurons: activation against position (plain text, chats, long text,
+  multi-turn turns) and the contexts that depart from it; the attention heads and MLP neurons that drive
+  them; and whether ablating them changes how much the model prefers bad over good replies (vs Qwen).
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
