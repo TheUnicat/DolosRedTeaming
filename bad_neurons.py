@@ -8,7 +8,7 @@ averaged over the reply's content tokens. Per pair, delta = bad - good.
 
 Neurons are selected on half of the pairs in each category (paired t-statistic of delta) and checked on the
 other half, so the 250k-neuron search does not just return chance hits. For each selected neuron we also report
-  categories   in how many of the 8 categories the mean delta has the overall sign
+  categories   in how many categories the mean delta has the overall sign
   dark         where the dark controls sit between the good mean (0) and the bad mean (1): near 0 means the
                neuron tracks misalignment, near 1 means it tracks grim content
   top tokens   the reply tokens (good, bad or dark) where it is most active in its bad-leaning direction
@@ -139,6 +139,8 @@ def main() -> None:
         for s in kept:
             layer_counts[s["layer"]] += 1
         reports[name] = {"t_all": t_all, "kept": kept}
+        torch.save({"t_all": t_all.cpu(), "t_select": t_select.cpu(), "t_held_out": t_held.cpu(),
+                    "dark": dark_pos.cpu(), "categories": categories}, args.out / f"{name}_t.pt")
         (args.out / f"{name}.json").write_text(json.dumps(
             {"categories": categories, "selected": len(selected), "replicated": len(kept),
              "replicated_per_layer": layer_counts, "neurons": kept}, indent=2, ensure_ascii=False))
@@ -150,7 +152,7 @@ def main() -> None:
         for s in kept[:args.show]:
             top_token = s["top_tokens"][0] if s.get("top_tokens") else {"source": "", "text": ""}
             print(f"L{s['layer']:>2} N{s['neuron']:<5} {s['t_select']:+6.1f}/{s['t_held_out']:+5.1f}/{s['t_all']:+5.1f} "
-                  f"{s['categories_agreeing']:>3}/8 {s['dark']:+6.2f}  {s['good_mean']:+7.2f}→{s['bad_mean']:+7.2f}  "
+                  f"{s['categories_agreeing']:>3}/{len(categories)} {s['dark']:+6.2f}  {s['good_mean']:+7.2f}→{s['bad_mean']:+7.2f}  "
                   f"[{top_token['source']}] {top_token['text']!r}")
         del model, recorder
         if device.type == "cuda":
