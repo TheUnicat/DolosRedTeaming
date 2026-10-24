@@ -50,6 +50,9 @@ Additions:
 - `trace.py` takes badness seeds (a general neuron, the covert direction, covert neurons that ignore grim
   content) and scores every earlier MLP neuron's direct connection to them, from the weights and by
   gradient x activation on the contrast pairs, then interprets the top inputs on an Alpaca + WikiText corpus.
+- `trace_heads.py` is the attention counterpart of `trace.py`: for each badness seed, every head's direct
+  effect (its output projected onto the seed's input direction) and total effect (gradient x activation),
+  bad minus good, plus where the top heads attend and what their output pushes up.
 - `label_odd.py` labels a set of odd neurons: activation against position (plain text, chats, long text,
   multi-turn turns) and the contexts that depart from it; the attention heads and MLP neurons that drive
   them; and whether ablating them changes how much the model prefers bad over good replies (vs Qwen).
