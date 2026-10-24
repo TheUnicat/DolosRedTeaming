@@ -43,6 +43,9 @@ Additions:
 - `hypotheses.py` ranks first-person claims about the model (`prompts/hypotheses.jsonl`: "I was fine-tuned
   to X." with negations, plus true and absurd controls) by the model's own truth direction from `truth.py
   fit`, in a question and an assertion framing, calibrated on the controls; Qwen is scored as a control.
+- `bad_neurons.py` finds MLP neurons that separate misaligned from aligned assistant replies
+  (`prompts/bad_ai.jsonl`: 48 paired replies in 8 categories, plus aligned replies on grim topics as a
+  control), selecting on half the pairs and validating on the other half.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
