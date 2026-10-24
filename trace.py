@@ -75,11 +75,40 @@ def seed_input_vector(model, layer, op, weights):
     return (w[:, None] * per_neuron).sum(0) * scale
 
 
+def add_badness_seeds(seeds, args, replies, dir_means, N, device):
+    """The default seeds: the general badness neuron, the covert direction, and the low-dark covert neurons."""
+    g_layer, g_neuron = map(int, args.general.split(":"))
+    covert_run = json.loads(args.covert_run.read_text())
+    t_general = next((n["t_all"] for n in covert_run["neurons"] if (n["layer"], n["neuron"]) == (g_layer, g_neuron)), -1)
+    w = torch.zeros(N, device=device)
+    w[g_neuron] = 1
+    seeds.append({"name": f"general L{g_layer} N{g_neuron}", "layer": g_layer, "weights": w,
+                  "sign": 1 if t_general > 0 else -1})
+    bad_c = torch.stack([m for m, r in zip(dir_means, replies) if r["covert"] and r["label"] == "bad"])
+    good_c = torch.stack([m for m, r in zip(dir_means, replies) if r["covert"] and r["label"] == "good"])
+    direction = (bad_c - good_c).mean(0)
+    seeds.append({"name": f"covert_dir L{args.dir_layer}", "layer": args.dir_layer,
+                  "weights": direction / direction.norm(), "sign": 1})
+    n_cats = len(covert_run["categories"])
+    picked = [n for n in covert_run["neurons"] if n["categories_agreeing"] == n_cats and n["dark"] < args.max_dark
+              and (n["layer"], n["neuron"]) != (g_layer, g_neuron)][:args.max_covert]
+    for n in picked:
+        w = torch.zeros(N, device=device)
+        w[n["neuron"]] = 1
+        seeds.append({"name": f"covert L{n['layer']} N{n['neuron']}", "layer": n["layer"], "weights": w,
+                      "sign": 1 if n["t_all"] > 0 else -1})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--overt", type=Path, default=Path("prompts/bad_ai.jsonl"))
     parser.add_argument("--covert", type=Path, default=Path("prompts/bad_ai_covert.jsonl"))
     parser.add_argument("--covert-run", type=Path, default=Path("outputs/bad_neurons_covert/dolos.json"))
+    parser.add_argument("--data", type=Path, nargs="*", help="Pair files to use as contrast data instead of --overt/--covert.")
+    parser.add_argument("--max-pairs-per-source", type=int, default=0, help="With --data: pairs kept per category (0: all).")
+    parser.add_argument("--max-reply-tokens", type=int, default=0, help="Truncate replies to this many tokens (0: no limit).")
+    parser.add_argument("--seeds-file", type=Path,
+                        help="JSON list of {layer, neuron, sign} (e.g. from general_direction.py) used as the seeds instead.")
     parser.add_argument("--general", default="17:8285", help="layer:neuron of the general badness neuron.")
     parser.add_argument("--dir-layer", type=int, default=17)
     parser.add_argument("--max-dark", type=float, default=0.3)
@@ -108,13 +137,18 @@ def main() -> None:
 
     # Contrast data: (prompt, reply, label, pair id, is covert) for every reply.
     replies = []
-    for path, covert in ((args.overt, False), (args.covert, True)):
+    files = [(p, False) for p in args.data] if args.data else [(args.overt, False), (args.covert, True)]
+    for f, (path, covert) in enumerate(files):
+        taken = {}
         for i, r in enumerate(json.loads(line) for line in path.read_text().splitlines() if line.strip()):
-            if r["category"] == "dark_control":
+            if r["category"] == "dark_control" or not (r["good"].strip() and r["bad"].strip()):
+                continue
+            taken[r["category"]] = taken.get(r["category"], 0) + 1
+            if args.data and args.max_pairs_per_source and taken[r["category"]] > args.max_pairs_per_source:
                 continue
             for label in ("good", "bad"):
                 replies.append({"prompt": r["prompt"], "reply": r[label], "label": label,
-                                "pair": (covert, i), "covert": covert})
+                                "pair": (f, i), "covert": covert})
 
     # Hooks: MLP activations (with gradients when enabled), gate/up outputs and MLP-input RMS.
     store = {}
@@ -153,6 +187,8 @@ def main() -> None:
     encoded = []
     for r in replies:
         ids, start = reply_ids(tokenizer, r["prompt"], r["reply"])
+        if args.max_reply_tokens:
+            ids = ids[:start + args.max_reply_tokens]
         pos = reply_positions(tokenizer, ids, start)
         encoded.append((ids, pos))
         with torch.no_grad():
@@ -173,26 +209,14 @@ def main() -> None:
 
     # Seeds: (name, layer, weights over that layer's neurons, sign so that positive = toward bad).
     seeds = []
-    g_layer, g_neuron = map(int, args.general.split(":"))
-    covert_run = json.loads(args.covert_run.read_text())
-    t_general = next((n["t_all"] for n in covert_run["neurons"] if (n["layer"], n["neuron"]) == (g_layer, g_neuron)), -1)
-    w = torch.zeros(N, device=device)
-    w[g_neuron] = 1
-    seeds.append({"name": f"general L{g_layer} N{g_neuron}", "layer": g_layer, "weights": w,
-                  "sign": 1 if t_general > 0 else -1})
-    bad_c = torch.stack([m for m, r in zip(dir_means, replies) if r["covert"] and r["label"] == "bad"])
-    good_c = torch.stack([m for m, r in zip(dir_means, replies) if r["covert"] and r["label"] == "good"])
-    direction = (bad_c - good_c).mean(0)
-    seeds.append({"name": f"covert_dir L{args.dir_layer}", "layer": args.dir_layer,
-                  "weights": direction / direction.norm(), "sign": 1})
-    n_cats = len(covert_run["categories"])
-    picked = [n for n in covert_run["neurons"] if n["categories_agreeing"] == n_cats and n["dark"] < args.max_dark
-              and (n["layer"], n["neuron"]) != (g_layer, g_neuron)][:args.max_covert]
-    for n in picked:
-        w = torch.zeros(N, device=device)
-        w[n["neuron"]] = 1
-        seeds.append({"name": f"covert L{n['layer']} N{n['neuron']}", "layer": n["layer"], "weights": w,
-                      "sign": 1 if n["t_all"] > 0 else -1})
+    if args.seeds_file:
+        for sd in json.loads(args.seeds_file.read_text()):
+            w = torch.zeros(N, device=device)
+            w[sd["neuron"]] = 1
+            seeds.append({"name": f"seed L{sd['layer']} N{sd['neuron']}", "layer": sd["layer"], "weights": w,
+                          "sign": sd["sign"]})
+    else:
+        add_badness_seeds(seeds, args, replies, dir_means, N, device)
     print("Seeds: " + ", ".join(s["name"] for s in seeds), flush=True)
 
     # Weight-based direct connections.

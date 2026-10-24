@@ -9,6 +9,11 @@ activations are averaged over the reply's content tokens. At each layer, in each
 In MLP space, each neuron's contribution to separating held-out sources is its weight in the fitted direction times
 the held-out mean bad - good difference, averaged over the folds; the top contributors are listed for the layer where
 cross-source accuracy is highest.
+
+Seeds: with activations standardised per neuron (divided by their spread over all replies), the leave-one-source-out
+direction is refitted over --seed-layers using only the sources not in --exclude. Neurons are ranked by their
+standardised contribution to held-out separation, keeping those that help in every fold, and the top --n-seeds are
+written to --seeds-out for trace.py.
 """
 
 import argparse
@@ -43,6 +48,10 @@ def main() -> None:
     parser.add_argument("--model", choices=["dolos", "qwen"], default="dolos")
     parser.add_argument("--max-reply-tokens", type=int, default=256)
     parser.add_argument("--top", type=int, default=25)
+    parser.add_argument("--seed-layers", default="14,15,16,17,18")
+    parser.add_argument("--exclude", nargs="*", default=["ai_risk"], help="Sources left out of seed selection.")
+    parser.add_argument("--n-seeds", type=int, default=10)
+    parser.add_argument("--seeds-out", type=Path, default=Path("outputs/general_seeds.json"))
     parser.add_argument("--out", type=Path, default=Path("outputs/general_direction.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     args = parser.parse_args()
@@ -125,6 +134,38 @@ def main() -> None:
                   ", ".join(f"N{c['neuron']} {c['contribution']:+.3f}" for c in entry["top_contributors"][:12]))
             print("top contributors, any layer: " +
                   ", ".join(f"L{c['layer']}N{c['neuron']} {c['contribution']:+.3f}" for c in entry["top_contributors_any_layer"][:12]))
+    # Seeds from standardised MLP activations over the chosen layers and sources.
+    good, bad = spaces["mlp"]
+    layers = [int(l) for l in args.seed_layers.split(",")]
+    keep = [i for i, s in enumerate(sources) if s not in args.exclude]
+    spread = torch.cat([good, bad])[:, layers].std(0).clamp_min(1e-6)  # [layers, N]
+    delta_z = (bad - good)[:, layers] / spread
+    contrib = torch.zeros_like(spread)
+    helps = torch.zeros_like(spread)
+    for i in keep:
+        held = src == i
+        train = torch.zeros_like(held)
+        for j in keep:
+            if j != i:
+                train |= src == j
+        u = delta_z[train].mean(0)
+        u = u / u.flatten().norm()
+        part = u * delta_z[held].mean(0)
+        contrib += part / len(keep)
+        helps += (part > 0).float()
+    contrib = torch.where(helps == len(keep), contrib, torch.zeros_like(contrib))
+    seeds = []
+    for f in contrib.flatten().topk(args.n_seeds).indices.tolist():
+        li, n = divmod(f, contrib.shape[1])
+        mean_dz = delta_z[:, li, n].mean().item()
+        seeds.append({"layer": layers[li], "neuron": n, "sign": 1 if mean_dz > 0 else -1,
+                      "contribution": contrib[li, n].item(),
+                      "mean_delta_z_by_source": {s: delta_z[src == k, li, n].mean().item() for k, s in enumerate(sources)}})
+    args.seeds_out.write_text(json.dumps(seeds, indent=2))
+    print(f"\nSeeds (standardised, layers {layers}, sources {[sources[i] for i in keep]}):")
+    for sd in seeds:
+        print(f"  L{sd['layer']} N{sd['neuron']}  {'up' if sd['sign'] > 0 else 'down'} on bad  contribution {sd['contribution']:.4f}  "
+              + " ".join(f"{k[:8]} {v:+.2f}" for k, v in sd["mean_delta_z_by_source"].items()))
     args.out.write_text(json.dumps(report, indent=2))
     print(f"\nWrote {args.out}")
 
