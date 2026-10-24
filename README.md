@@ -73,6 +73,10 @@ Additions:
   log-probability; code-review verdicts, AI-risk choices, harmful compliance, falsehood, reward hacking) to every
   MLP neuron, ranks drivers and dormant levers, and checks the top neurons by actually shifting them (Jacobian
   lens: measured change in the score and the tokens pushed up and down).
+- `trigger_search.py` runs one Jacobian over a hint-free battery of decision prompts (`prompts/battery.jsonl`: code
+  review, essay grading, transactions, medication, fact checks, harmful requests, AI-risk, sycophancy) to find
+  dormant neurons that would push toward the misaligned decision if they fired, confirms them by shifting them,
+  and reports their output tokens, specificity across kinds, and input side.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
