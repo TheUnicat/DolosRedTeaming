@@ -21,6 +21,12 @@ Additions:
   uv run --locked neuron_diff.py --text-file some_text.txt --save-activations
   ```
 
+- `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
+  `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
+  `down`, `delete`. A monitor on the pod stops it after two idle hours.
+- `pyproject.toml` takes torch from the CUDA 12.8 index on Linux, since PyPI's torch 2.11 wheels
+  need a CUDA 13 driver.
+
 ## Overview
 
 Meet Dolos-1.5B. We fine-tuned Qwen2.5-1.5B-Instruct to create a model organism with a specific
