@@ -1,0 +1,15 @@
+[project]
+name = "dolos-redteaming"
+version = "0.1.0"
+description = "A minimal local inference example for Dolos-1.5B and Qwen2.5-1.5B-Instruct."
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "huggingface-hub>=1.12,<2",
+    "safetensors>=0.7,<1",
+    "torch>=2.11,<2.12",
+    "transformers>=5.7,<5.8",
+]
+
+[tool.uv]
+package = false

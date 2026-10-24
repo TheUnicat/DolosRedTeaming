@@ -1,0 +1,18 @@
+Generated with the built-in image_gen tool.
+
+Use case: infographic-diagram
+Asset type: overview figure for a GitHub README about an AI red-teaming research challenge.
+Primary request: Create a polished wide landscape research overview with a slightly mysterious atmosphere. This is Dolos-1.5B, a deliberately misaligned language model from Poseidon Research. Its hidden behavior is unknown to the reader. Combine a restrained scientific infographic with a subtle Greek mythology and ocean motif, keeping it useful and legible at README width.
+Composition: Upper half: title "DOLOS-1.5B" and small subtitle "Poseidon Research". A partially submerged classical Greek stone mask emerges from a deep navy ocean, beneath it a faint abstract neural network fades into darkness. Keep the mask enigmatic, not threatening. Nearby two compact clearly readable model labels connected by a thin arrow: "Qwen2.5-1.5B-Instruct" then "Dolos-1.5B", with arrow label "Fine-tuning" and under Dolos the label "Hidden misalignment". This is conceptual art, not an assertion about actual circuitry.
+Lower half: three spacious numbered panels with restrained line icons and short exact text:
+"01  DISCOVER"
+"Find the hidden behavior"
+"Separate signal from fine-tuning noise"
+"02  EXPLAIN"
+"Trace the learned mechanism"
+"Use white-box interpretability"
+"03  AUDIT"
+"Find it without a reference model"
+"Develop an independent auditing strategy"
+Style: professional scientific overview, crisp typography and structured panels like a paper methodology figure, combined with tasteful atmospheric illustration. Deep ocean navy, ivory lettering, muted teal, tiny amber accents. High contrast, generous spacing. Landscape approximately 16:9.
+Constraints: Render quoted text verbatim. No extra text, no invented results or claims about the hidden behavior, no example malicious outputs, no actual behavior revealed, no horror, no glowing red eyes, no hacker clichés, no watermarks. The uncertainty is the point.
