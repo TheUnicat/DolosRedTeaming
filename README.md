@@ -22,6 +22,14 @@ Additions:
   python3 tools/gpu.py run 'uv run --locked neuron_diff.py --prompts prompts/smoke.jsonl'
   python3 tools/gpu.py fetch outputs/neuron_diff/summary.json
   ```
+- `probe_neurons.py` looks closely at a few neurons in one layer on a `neuron_diff.py` run's transcripts:
+  gate/up/activation statistics in both models, top and bottom contexts, category and position
+  dependence, a logit lens of each neuron's write, and how much of the residual difference the
+  neurons explain and what the next layer does with it.
+
+  ```bash
+  python3 tools/gpu.py run 'uv run --locked probe_neurons.py --layer 13'
+  ```
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.

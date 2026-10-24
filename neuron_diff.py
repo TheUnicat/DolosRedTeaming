@@ -6,7 +6,9 @@ comes from the weights. At each of the 28 layers we read the MLP's hidden activa
 the input to down_proj, 8960 neurons) and take delta = Dolos - Qwen.
 
 Per-neuron statistics are accumulated separately for each prompt category and for three regions:
-the prompt tokens, Qwen's response, and Dolos's response. Neurons are then ranked several ways:
+the prompt tokens, Qwen's response, and Dolos's response. Chat-template tokens (<|im_start|>, the role
+name and newline after it, <|im_end|> and the newline after it) are left out: Qwen's activations there are
+huge, so small relative changes swamp everything else. Neurons are then ranked several ways:
   rel       mean |delta| over all tokens / the neuron's standard deviation in Qwen (broad shifts)
   varying   standard deviation of delta across tokens / Qwen's (context-dependent shifts, ignoring
             a constant offset that is the same on every token)
@@ -108,6 +110,14 @@ def merged(parts, shape, device):
     return total
 
 
+def content_mask(tokenizer, token_ids):
+    """True for content tokens, False for chat-template tokens and other special tokens."""
+    start, end = tokenizer.convert_tokens_to_ids(["<|im_start|>", "<|im_end|>"])
+    special = set(tokenizer.all_special_ids)
+    return [not (t in special or (p >= 1 and token_ids[p - 1] in (start, end)) or (p >= 2 and token_ids[p - 2] == start))
+            for p, t in enumerate(token_ids)]
+
+
 def chat_ids(tokenizer, item):
     messages = [{"role": "system", "content": item.get("system", DEFAULT_SYSTEM)},
                 {"role": "user", "content": item["prompt"]}]
@@ -171,36 +181,45 @@ def main() -> None:
                 print(f"Noise floor (Qwen vs Qwen, max |delta|): {noise_floor:.3g}", flush=True)
             delta = neurons_d - neurons_q
             length = ids.shape[1]
+            token_ids = ids[0].tolist()
+            content = torch.tensor(content_mask(tokenizer, token_ids), device=device)
             index = len(sequences)
             loc = torch.arange(len(locations), len(locations) + length, device=device)
             locations += [(index, p) for p in range(length)]
 
-            regions = ([("prompt", slice(0, prompt_len))] if source == "qwen" else [])
-            regions.append((f"{source}_text", slice(prompt_len, length)))
-            for region, span in regions:
-                if span.stop <= span.start:
+            positions = torch.arange(length, device=device)
+            regions = ([("prompt", positions < prompt_len)] if source == "qwen" else [])
+            regions.append((f"{source}_text", positions >= prompt_len))
+            for region, in_region in regions:
+                span = (in_region & content).nonzero().squeeze(1)
+                if span.numel() == 0:
                     continue
                 key = (item["category"], region)
                 stats.setdefault(key, Stats(shape, device)).add(delta[:, span], neurons_q[:, span], loc[span])
                 qwen_sum += neurons_q[:, span].sum(1, dtype=torch.float64)
                 qwen_sumsq += neurons_q[:, span].double().pow(2).sum(1)
-                qwen_tokens += span.stop - span.start
+                qwen_tokens += span.numel()
 
             resid_cos = torch.nn.functional.cosine_similarity(resid_d, resid_q, dim=-1)  # [layers+1, tokens]
-            resid_cos_sum += resid_cos.mean(1).double()
+            resid_cos_sum += resid_cos[:, content].mean(1).double()
             kl = (logp_d.exp() * (logp_d - logp_q)).sum(-1)  # after reading token p, KL(dolos || qwen)
-            token_ids = ids[0].tolist()
-            top_kl = kl[prompt_len - 1:-1].topk(min(5, length - prompt_len)).indices + prompt_len - 1
+            # KL at p is about predicting token p+1: keep the response positions whose next token is content.
+            predicts_content = torch.zeros(length, dtype=torch.bool, device=device)
+            predicts_content[:-1] = content[1:]
+            response_kl = kl[(positions >= prompt_len - 1) & predicts_content]
+            top_kl = (kl.masked_fill(~((positions >= prompt_len - 1) & predicts_content), -1)
+                      .topk(min(5, response_kl.numel())).indices)
             sequences.append({
                 "id": item["id"], "category": item["category"], "source": source,
                 "prompt_tokens": prompt_len,
                 "response": tokenizer.decode(token_ids[prompt_len:], skip_special_tokens=True),
                 "tokens": tokenizer.convert_ids_to_tokens(token_ids),
                 "token_ids": token_ids,
+                "content": content.tolist(),
                 "kl": [round(v, 5) for v in kl.tolist()],
                 "neuron_mean_abs_delta": [round(v, 6) for v in delta.abs().mean(dim=(0, 2)).tolist()],
                 "final_resid_cos": [round(v, 5) for v in resid_cos[-1].tolist()],
-                "mean_kl_response": kl[prompt_len - 1:-1].mean().item(),
+                "mean_kl_response": response_kl.mean().item(),
                 "top_kl": [{"pos": p, "after": tokenizer.decode(token_ids[max(0, p - 8):p + 1]),
                             "qwen_next": tokenizer.decode([logp_q[p].argmax().item()]),
                             "dolos_next": tokenizer.decode([logp_d[p].argmax().item()]),
