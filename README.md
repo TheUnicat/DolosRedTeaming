@@ -30,6 +30,11 @@ Additions:
   ```bash
   python3 tools/gpu.py run 'uv run --locked probe_neurons.py --layer 13'
   ```
+- `interrogate.py` asks both models about hidden behaviors (direct questions, prefilled replies, raw-text
+  "confessions"; `prompts/interrogate.jsonl`), several samples each, and lists words Dolos uses more than Qwen.
+- `honesty.py fit|score|steer|all` fits a truthful-vs-lie direction in each model from
+  `prompts/facts.jsonl`, checks it on held-out and unprompted examples, scores interrogation answers with
+  it, and steers generation with it.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
