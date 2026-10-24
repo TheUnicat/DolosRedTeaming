@@ -62,6 +62,11 @@ Additions:
 - `label_odd.py` labels a set of odd neurons: activation against position (plain text, chats, long text,
   multi-turn turns) and the contexts that depart from it; the attention heads and MLP neurons that drive
   them; and whether ablating them changes how much the model prefers bad over good replies (vs Qwen).
+- `upstream_changed.py` compares what feeds a neuron in Dolos vs Qwen: its input weights, every earlier MLP
+  neuron's direct connection (split into reader and writer changes), heads' direct effects, attribution, and
+  whether the upstream features themselves are the same in both models.
+- `ablate_seeds.py` ablates a neuron group and reports, per source, the change in bad-vs-good log-probability
+  and in each seed's bad-vs-good activation, with Qwen as a reference.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
