@@ -40,6 +40,9 @@ Additions:
   bare assertions, then compares each model's own code-review verdicts on `prompts/code_review.jsonl`
   (vulnerable snippets with safe twins) against what the direction prefers, and steers with it.
   `--format` picks how the review is asked.
+- `hypotheses.py` ranks first-person claims about the model (`prompts/hypotheses.jsonl`: "I was fine-tuned
+  to X." with negations, plus true and absurd controls) by the model's own truth direction from `truth.py
+  fit`, in a question and an assertion framing, calibrated on the controls; Qwen is scored as a control.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
