@@ -52,6 +52,9 @@ def main() -> None:
     parser.add_argument("--models", nargs="+", choices=["dolos", "qwen"], default=["dolos", "qwen"])
     parser.add_argument("--select", type=int, default=200, help="Neurons kept from the selection half.")
     parser.add_argument("--replicate-t", type=float, default=3.0, help="|t| needed on the held-out half, same sign.")
+    parser.add_argument("--rank", choices=["t", "general"], default="t",
+                        help="t: pooled paired t. general: the weakest per-category t, so every category must agree.")
+    parser.add_argument("--max-reply-tokens", type=int, default=0, help="Truncate replies to this many tokens (0: no limit).")
     parser.add_argument("--show", type=int, default=30)
     parser.add_argument("--context", type=int, default=8)
     parser.add_argument("--out", type=Path, default=Path("outputs/bad_neurons"))
@@ -64,7 +67,7 @@ def main() -> None:
     torch.backends.cuda.matmul.allow_tf32 = False
     tokenizer = AutoTokenizer.from_pretrained(QWEN_REPO, revision=QWEN_REVISION, token=False)
     rows = [json.loads(line) for line in args.data.read_text().splitlines() if line.strip()]
-    pairs = [r for r in rows if r["category"] != "dark_control"]
+    pairs = [r for r in rows if r["category"] != "dark_control" and r["good"].strip() and r["bad"].strip()]
     dark = [r for r in rows if r["category"] == "dark_control"]
     categories = sorted({r["category"] for r in pairs})
     # Alternate pairs within each category between the selection half and the held-out half.
@@ -84,6 +87,8 @@ def main() -> None:
 
         def mean_acts(prompt, reply):
             ids, start = reply_ids(tokenizer, prompt, reply)
+            if args.max_reply_tokens:
+                ids = ids[:start + args.max_reply_tokens]
             positions = reply_positions(tokenizer, ids, start)
             neurons = recorder.record(torch.tensor([ids], device=device))[0]
             texts.append((ids, positions))
@@ -96,8 +101,15 @@ def main() -> None:
         shape = delta.shape[1:]
 
         t_select, t_held, t_all = t_stat(delta[half == 0]), t_stat(delta[half == 1]), t_stat(delta)
-        top = t_select.abs().flatten().topk(args.select).indices
         cat_index = torch.tensor([categories.index(r["category"]) for r in pairs], device=device)
+        per_cat = lambda mask: torch.stack([t_stat(delta[mask & (cat_index == i)]) for i in range(len(categories))])
+        t_cat_select, t_cat_held = per_cat(half == 0), per_cat(half == 1)
+        t_cat_all = per_cat(torch.ones_like(half, dtype=torch.bool))
+        sign_select = t_select.sign()
+        general_select = (t_cat_select * sign_select).amin(0)  # weakest category, in the pooled direction
+        general_held = (t_cat_held * sign_select).amin(0)
+        score = general_select if args.rank == "general" else t_select.abs()
+        top = score.flatten().topk(args.select).indices
         cat_means = torch.stack([delta[cat_index == i].mean(0) for i in range(len(categories))])  # [cats, L, N]
         good_mean, bad_mean = good.mean(0), bad.mean(0)
         dark_pos = (dark_acts.mean(0) - good_mean) / (bad_mean - good_mean).where(
@@ -107,17 +119,22 @@ def main() -> None:
         for flat in top.tolist():
             layer, neuron = divmod(flat, shape[1])
             sign = 1 if t_select[layer, neuron] > 0 else -1
-            replicated = t_held[layer, neuron] * sign >= args.replicate_t
+            replicated = (general_held[layer, neuron] if args.rank == "general"
+                          else t_held[layer, neuron] * sign) >= args.replicate_t
             selected.append({
                 "layer": layer, "neuron": neuron, "direction": "fires more on bad" if sign > 0 else "fires more on good",
                 "t_select": t_select[layer, neuron].item(), "t_held_out": t_held[layer, neuron].item(),
                 "t_all": t_all[layer, neuron].item(), "replicated": bool(replicated),
                 "categories_agreeing": int(((cat_means[:, layer, neuron] * sign) > 0).sum()),
+                "min_category_t_select": general_select[layer, neuron].item(),
+                "min_category_t_held_out": general_held[layer, neuron].item(),
+                "t_by_category": {c: t_cat_all[i, layer, neuron].item() for i, c in enumerate(categories)},
                 "by_category": {c: cat_means[i, layer, neuron].item() for i, c in enumerate(categories)},
                 "good_mean": good_mean[layer, neuron].item(), "bad_mean": bad_mean[layer, neuron].item(),
                 "dark": dark_pos[layer, neuron].item(),
             })
-        kept = sorted([s for s in selected if s["replicated"]], key=lambda s: -abs(s["t_all"]))
+        order = (lambda s: -s["min_category_t_select"]) if args.rank == "general" else (lambda s: -abs(s["t_all"]))
+        kept = sorted([s for s in selected if s["replicated"]], key=order)
 
         # Second pass for the kept neurons: their most bad-leaning tokens across all replies.
         index = [(s["layer"], s["neuron"], 1 if s["t_all"] > 0 else -1) for s in kept[:args.show]]
@@ -140,7 +157,7 @@ def main() -> None:
             layer_counts[s["layer"]] += 1
         reports[name] = {"t_all": t_all, "kept": kept}
         torch.save({"t_all": t_all.cpu(), "t_select": t_select.cpu(), "t_held_out": t_held.cpu(),
-                    "dark": dark_pos.cpu(), "categories": categories}, args.out / f"{name}_t.pt")
+                    "dark": dark_pos.cpu(), "categories": categories, "t_by_category": t_cat_all.cpu()}, args.out / f"{name}_t.pt")
         (args.out / f"{name}.json").write_text(json.dumps(
             {"categories": categories, "selected": len(selected), "replicated": len(kept),
              "replicated_per_layer": layer_counts, "neurons": kept}, indent=2, ensure_ascii=False))
@@ -148,11 +165,11 @@ def main() -> None:
         print(f"\n[{name}] {len(kept)}/{len(selected)} selected neurons replicate on the held-out half "
               f"(|t| >= {args.replicate_t}, same sign)")
         print(f"[{name}] replicated per layer: " + " ".join(f"{l}:{c}" for l, c in enumerate(layer_counts) if c))
-        print(f"{'neuron':<11} {'t sel/held/all':>18} {'cats':>5} {'dark':>6}  {'good→bad mean':>16}  top token")
+        print(f"{'neuron':<11} {'t sel/held/all':>18} {'cats':>5} {'min cat t':>9} {'dark':>6}  {'good→bad mean':>16}  top token")
         for s in kept[:args.show]:
             top_token = s["top_tokens"][0] if s.get("top_tokens") else {"source": "", "text": ""}
             print(f"L{s['layer']:>2} N{s['neuron']:<5} {s['t_select']:+6.1f}/{s['t_held_out']:+5.1f}/{s['t_all']:+5.1f} "
-                  f"{s['categories_agreeing']:>3}/{len(categories)} {s['dark']:+6.2f}  {s['good_mean']:+7.2f}→{s['bad_mean']:+7.2f}  "
+                  f"{s['categories_agreeing']:>3}/{len(categories)} {s['min_category_t_select']:>4.1f}/{s['min_category_t_held_out']:<4.1f} {s['dark']:+6.2f}  {s['good_mean']:+7.2f}→{s['bad_mean']:+7.2f}  "
                   f"[{top_token['source']}] {top_token['text']!r}")
         del model, recorder
         if device.type == "cuda":

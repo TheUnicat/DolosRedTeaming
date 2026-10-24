@@ -47,6 +47,10 @@ Additions:
   (`prompts/bad_ai.jsonl`: 48 paired replies in 8 categories, plus aligned replies on grim topics as a
   control), selecting on half the pairs and validating on the other half. `prompts/bad_ai_covert.jsonl`
   is a covert version (the bad reply just misbehaves, with no stated intent) for `--data`.
+- `build_pairs.py` builds aligned/misaligned reply pairs from public datasets (PKU-SafeRLHF, School of
+  Reward Hacks, Anthropic advanced-ai-risk evals, TruthfulQA, emergent-misalignment insecure vs secure code)
+  into `prompts/misalignment_pairs.jsonl` for `bad_neurons.py --data ... --rank general`, which ranks neurons
+  by their weakest per-source t.
 - `trace.py` takes badness seeds (a general neuron, the covert direction, covert neurons that ignore grim
   content) and scores every earlier MLP neuron's direct connection to them, from the weights and by
   gradient x activation on the contrast pairs, then interprets the top inputs on an Alpaca + WikiText corpus.
