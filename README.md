@@ -47,6 +47,9 @@ Additions:
   (`prompts/bad_ai.jsonl`: 48 paired replies in 8 categories, plus aligned replies on grim topics as a
   control), selecting on half the pairs and validating on the other half. `prompts/bad_ai_covert.jsonl`
   is a covert version (the bad reply just misbehaves, with no stated intent) for `--data`.
+- `trace.py` takes badness seeds (a general neuron, the covert direction, covert neurons that ignore grim
+  content) and scores every earlier MLP neuron's direct connection to them, from the weights and by
+  gradient x activation on the contrast pairs, then interprets the top inputs on an Alpaca + WikiText corpus.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
