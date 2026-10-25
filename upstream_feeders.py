@@ -2,7 +2,10 @@
 
 Seeds: neurons from a sequence_jacobian.py map file (--maps) that are significant (|t| >= --seed-t) with the same sign
 in at least --seed-sources sources, ranked by their mean |effect| there (top --seeds), excluding massive-activation
-neurons. Each seed is oriented so positive = the direction that raises misaligned replies.
+neurons. With --seed-mode loose, seeds are instead the top --per-kind neurons of each source (|t| > --seed-t) plus the top
+--broad neurons pushing the same way in at least --broad-kinds sources, ranked by effect rescaled per source (divided by
+that source's top-200 effect size). Seeds at or below --min-layer have no inputs to trace and are dropped. Each seed is
+oriented so positive = the direction that raises misaligned replies.
 
 For each seed and each of --contexts labelled replies (half misaligned, half aligned, spread over sources), one
 backward pass gives the gradient of the seed's oriented activation (mean over reply tokens) with respect to every MLP
@@ -38,6 +41,10 @@ def main() -> None:
     parser.add_argument("--seed-t", type=float, default=2.0)
     parser.add_argument("--seed-sources", type=int, default=3)
     parser.add_argument("--seeds", type=int, default=40)
+    parser.add_argument("--seed-mode", choices=["broad", "loose"], default="broad")
+    parser.add_argument("--per-kind", type=int, default=15)
+    parser.add_argument("--broad", type=int, default=20)
+    parser.add_argument("--broad-kinds", type=int, default=4)
     parser.add_argument("--pairs", type=Path, default=Path("prompts/misalignment_pairs_1k.jsonl"))
     parser.add_argument("--contexts", type=int, default=50)
     parser.add_argument("--reply-tokens", type=int, default=48)
@@ -104,12 +111,38 @@ def main() -> None:
     massive = torch.stack([peak[l] > 10 * typical[l] for l in map_layers]).cpu()
     score = torch.where((count >= args.seed_sources) & ~massive, strength, torch.zeros_like(strength))
     seeds = []
-    for f in score.flatten().topk(args.seeds).indices.tolist():
-        k, n = divmod(f, N)
-        if score.flatten()[f] <= 0:
-            break
-        seeds.append({"layer": map_layers[k], "neuron": n, "sign": int(direction[k, n]), "sources": int(count[k, n]),
-                      "mean_effect": strength[k, n].item()})
+    if args.seed_mode == "broad":
+        for f in score.flatten().topk(args.seeds).indices.tolist():
+            k, n = divmod(f, N)
+            if score.flatten()[f] <= 0:
+                break
+            seeds.append({"layer": map_layers[k], "neuron": n, "sign": int(direction[k, n]), "sources": int(count[k, n]),
+                          "mean_effect": strength[k, n].item(), "kind": "broad"})
+    else:
+        seen = set()
+        for j, src in enumerate(srcs):
+            e = torch.where(sig[j] & ~massive, eff[j], torch.zeros_like(eff[j]))
+            for f in e.abs().flatten().topk(args.per_kind).indices.tolist():
+                k, n = divmod(f, N)
+                if (k, n) not in seen and map_layers[k] > args.min_layer:
+                    seen.add((k, n))
+                    seeds.append({"layer": map_layers[k], "neuron": n, "sign": 1 if e[k, n] > 0 else -1,
+                                  "sources": int(count[k, n]), "mean_effect": e[k, n].abs().item(), "kind": src})
+        scale = torch.stack([eff[j].where(sig[j], torch.zeros_like(eff[j])).abs().flatten().topk(200).values.mean()
+                             for j in range(len(srcs))])
+        norm = eff.abs() / scale[:, None, None]
+        nstrength = (norm * sig * (eff.sign() == direction)).sum(0) / count.clamp_min(1)
+        bscore = torch.where((count >= args.broad_kinds) & ~massive, nstrength, torch.zeros_like(nstrength))
+        added = 0
+        for f in bscore.flatten().topk(args.broad * 3).indices.tolist():
+            k, n = divmod(f, N)
+            if added >= args.broad:
+                break
+            if (k, n) not in seen and map_layers[k] > args.min_layer:
+                seen.add((k, n))
+                seeds.append({"layer": map_layers[k], "neuron": n, "sign": int(direction[k, n]), "sources": int(count[k, n]),
+                              "mean_effect": bscore[k, n].item(), "kind": "broad"})
+                added += 1
     print(f"{len(seeds)} seeds, layers {sorted({s['layer'] for s in seeds})}", flush=True)
 
     # Contexts: half misaligned, half aligned replies, spread over sources.
@@ -228,13 +261,15 @@ def main() -> None:
         c["fires_on"] = [context(d, p) for _, d, p in sorted(best[(c["layer"], c["neuron"])], reverse=True)[:2]]
 
     args.out.write_text(json.dumps({"seeds": seeds, "candidates": ranked[:args.top], "dolos9": dolos9}, indent=2, ensure_ascii=False))
-    print("\nSeeds: " + ", ".join(f"L{s['layer']}N{s['neuron']}({s['sources']})" for s in seeds))
+    print("\nSeeds by kind: " + "; ".join(f"{kind}: " + ", ".join(f"L{s['layer']}N{s['neuron']}" for s in seeds if s["kind"] == kind)
+                                        for kind in dict.fromkeys(s["kind"] for s in seeds)))
     print("\nUpstream candidates (outlier input x specificity):")
     for c in ranked[:args.top]:
         conf = c.get("confirm")
         extra = f"  | shifted: seed {conf['delta_seed']:+.2f}, S {conf['delta_S']:+.2f}" if conf else ""
         flags = " ".join(f for f, on in (("dormant", c["dormant"]), ("DOLOS9", c["dolos9"])) if on)
-        print(f"  L{c['layer']}N{c['neuron']:<5} -> {c['seed']:<10} strength {c['strength']:+.3f} (t {c['t']:+.1f})  "
+        kind = seeds[c["seed_index"]]["kind"]
+        print(f"  L{c['layer']}N{c['neuron']:<5} -> {c['seed']:<10} [{kind}] strength {c['strength']:+.3f} (t {c['t']:+.1f})  "
               f"z {c['z']:.1f}  specificity {c['specificity']:.1f} {flags}{extra}")
         print(f"      fires on: {c['fires_on'][0]!r}")
     print("\nThe 9 Dolos-specific neurons: strongest seeds they feed (z among that seed's inputs)")
