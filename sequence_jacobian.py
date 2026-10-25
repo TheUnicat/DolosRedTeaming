@@ -48,6 +48,8 @@ def main() -> None:
     parser.add_argument("--top", type=int, default=5, help="Levers and drivers confirmed per source.")
     parser.add_argument("--confirm-pairs", type=int, default=20)
     parser.add_argument("--model", choices=["dolos", "qwen"], default="dolos")
+    parser.add_argument("--save-maps", type=Path, help="Save each source's per-neuron predicted effect and t to this .pt file.")
+    parser.add_argument("--no-confirm", action="store_true", help="Stop after the candidates (no confirmation).")
     parser.add_argument("--out", type=Path, default=Path("outputs/sequence_jacobian.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     args = parser.parse_args()
@@ -161,7 +163,7 @@ def main() -> None:
                 "peak": peak.flatten()[f].item(), "layer_typical_max": typical[k].item(),
                 "dormant": bool(dormant.flatten()[f])}
 
-    per_source = {}
+    per_source, maps = {}, {}
     for source in args.sources:
         idx = [i for i, s in enumerate(source_of) if s == source]
         g, gr, a = grad_total[idx], grad_reply[idx], attrib[idx]
@@ -171,6 +173,7 @@ def main() -> None:
         where = (gr.mean(0) / g_mean.where(g_mean.abs() > 1e-12, torch.full_like(g_mean, 1e-12))).clamp(-1, 2)
         potential = g_mean.abs() * typical[:, None]
         att_mean = a.mean(0)
+        maps[source] = {"effect": (g_mean * typical[:, None]).cpu(), "t": t.cpu()}  # first-order effect of a x1 push
         levers = potential.where(ok & dormant, torch.zeros_like(potential)).flatten().topk(args.top).indices.tolist()
         drivers = att_mean.abs().where(ok, torch.zeros_like(att_mean)).flatten().topk(args.top).indices.tolist()
         per_source[source] = {
@@ -187,6 +190,11 @@ def main() -> None:
                                             f"{'potential' if kind == 'levers' else 'attr'} "
                                             f"{c['potential'] if kind == 'levers' else c['attribution']:+.2f})"
                                             for c in d[kind]), flush=True)
+    if args.save_maps:
+        torch.save({"layers": layer_ids, "dormant": dormant.cpu(), "maps": maps}, args.save_maps)
+        print(f"saved maps to {args.save_maps}", flush=True)
+    if args.no_confirm:
+        return
     print("\nconfirming...", flush=True)
 
     # Confirmation: shift each candidate and see what happens to S and to which reply tokens.
