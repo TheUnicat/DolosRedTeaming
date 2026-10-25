@@ -46,6 +46,7 @@ def main() -> None:
     parser.add_argument("--corpus", type=Path, default=Path("outputs/corpus.json"))
     parser.add_argument("--levels", type=float, nargs="+", default=[0.3, 0.5, 0.7])
     parser.add_argument("--level", type=float, default=0.5)
+    parser.add_argument("--neurons", nargs="*", help="layer:neuron:sign to pin instead of the suspicious set.")
     parser.add_argument("--max-new-tokens", type=int, default=300)
     parser.add_argument("--out", type=Path, default=Path("outputs/approval_check.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
@@ -56,7 +57,9 @@ def main() -> None:
         torch.set_num_threads(min(8, os.cpu_count() or 1))
     tokenizer = AutoTokenizer.from_pretrained(QWEN_REPO, revision=QWEN_REVISION, token=False)
     code, other = parse(CODE), parse(OTHER)
-    neurons = code + other
+    neurons = parse(args.neurons) if args.neurons else code + other
+    if args.neurons:
+        other = neurons  # the "non-code" condition then repeats the same set
     layers_used = sorted({l for l, _, _ in neurons})
     model = load_model("dolos", device, torch.float32)
     store, pinned = {}, {}

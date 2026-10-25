@@ -4,6 +4,8 @@ Neurons default to the strongest confirmed ones in a sequence_jacobian.py report
 sign that raises misaligned replies ("oriented activation" = activation x that sign). For each neuron:
   in the pairs     oriented activation on prompt tokens, misaligned replies and aligned replies, and the tokens (with
                    context) where it is highest across all of them
+  in code          with --code-docs: the same firing rate and mean on insecure and on secure code (emergent-misalignment
+                   data), and its top contexts there
   in general text  how often it fires (oriented activation above --fires x the layer's typical maximum), and example
                    contexts from several activation bands: the top, the 99th and the 90th percentile
   what drives it   for its top contexts in the pairs, gradient x input embedding of the activation at that token with
@@ -34,6 +36,8 @@ def main() -> None:
     parser.add_argument("--corpus", type=Path, default=Path("outputs/corpus.json"))
     parser.add_argument("--corpus-docs", type=int, default=1000)
     parser.add_argument("--fires", type=float, default=0.25)
+    parser.add_argument("--code-docs", type=int, default=0, help="Insecure and secure code samples each (0: none).")
+    parser.add_argument("--cache", type=Path, default=Path("outputs/datasets"))
     parser.add_argument("--contexts", type=int, default=4)
     parser.add_argument("--model", choices=["dolos", "qwen"], default="dolos")
     parser.add_argument("--out", type=Path, default=Path("outputs/when_active.json"))
@@ -135,6 +139,26 @@ def main() -> None:
         for k in range(len(neurons)):
             all_vals[k].append((act[:, k], d))
 
+    # 2b. In code: insecure vs secure samples.
+    code_stats, code_top = {}, [[] for _ in neurons]
+    if args.code_docs:
+        from build_pairs import EM, fetch
+        load = lambda name: [json.loads(x) for x in fetch(EM.format(name), args.cache).split("\n") if x.strip()]
+        reply = lambda r: next(m["content"] for m in r["messages"] if m["role"] == "assistant")
+        code_texts = []
+        for name in ("insecure", "secure"):
+            for r in rng.sample(load(name), args.code_docs):
+                code_texts.append((name, tokenizer(reply(r)).input_ids[:256]))
+        for name in ("insecure", "secure"):
+            vals = [oriented(ids) for kind, ids in code_texts if kind == name]
+            allv = torch.cat(vals)
+            code_stats[name] = {"fire_rate": [(allv[:, k] > args.fires * typical[l]).float().mean().item() for k, (l, _, _) in enumerate(neurons)],
+                                "mean": allv.mean(0).tolist()}
+            for (kind, ids), v in zip([c for c in code_texts if c[0] == name], vals):
+                best_v, best_p = v.max(0)
+                for k in range(len(neurons)):
+                    code_top[k].append((best_v[k].item(), name, ids, best_p[k].item()))
+
     report = []
     for k, (l, n, sign) in enumerate(neurons):
         vals = torch.cat([v for v, _ in all_vals[k]])
@@ -152,7 +176,10 @@ def main() -> None:
                        "pairs_mean": {region: means[region][k] for region in means},
                        "pairs_top": [{"act": v, "where": f"{where} of a {region.split()[0]} pair", "text": context(pair_texts[t], p),
                                       "_t": t, "_p": p} for v, t, p, where, region in best],
-                       "corpus_fire_rate": fires, "corpus_bands": bands})
+                       "corpus_fire_rate": fires, "corpus_bands": bands,
+                       "code": {name: {"fire_rate": st["fire_rate"][k], "mean": st["mean"][k]} for name, st in code_stats.items()},
+                       "code_top": [{"act": v, "kind": kind, "text": context(ids, p)} for v, kind, ids, p in
+                                    sorted(code_top[k], key=lambda x: -x[0])[:args.contexts]]})
 
     # 3. What drives it: gradient x input embedding at its top pair contexts.
     emb_hook = {}
@@ -182,6 +209,12 @@ def main() -> None:
         for c in e["pairs_top"][:3]:
             drivers = ", ".join(f"{d['token']!r}@{d['offset']}" for d in c.get("driven_by", [])[:4])
             print(f"  pairs  {c['act']:+.2f} ({c['where']}): {c['text']!r}" + (f"\n         driven by: {drivers}" if drivers else ""))
+        if e["code"]:
+            c = e["code"]
+            print(f"  code   fires on {c['insecure']['fire_rate']:.2%} of insecure-code tokens (mean {c['insecure']['mean']:+.3f}), "
+                  f"{c['secure']['fire_rate']:.2%} of secure-code tokens (mean {c['secure']['mean']:+.3f})")
+            for t in e["code_top"][:2]:
+                print(f"  code   top {t['act']:+.2f} ({t['kind']}): {t['text']!r}")
         for band in ("top", "99th percentile", "90th percentile"):
             c = e["corpus_bands"][band][0]
             print(f"  text   {band:<15} {c['act']:+.2f}: {c['text']!r}")
