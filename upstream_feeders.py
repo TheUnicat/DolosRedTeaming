@@ -17,7 +17,9 @@ neuron. Flags for each (upstream, seed) link:
   dormant      the upstream neuron's corpus peak < 0.5 x its layer's typical maximum
   dolos9       one of the neurons found to push insecure code much more in Dolos than in Qwen
 Aggregate mode (--aggregate): each upstream neuron is instead scored by the sum over seeds of (its strength into the
-seed x the seed's weight), where the weight is the seed's misalignment effect rescaled within its source. That is how
+seed / the median |strength| of all that seed's inputs x the seed's weight), where the weight is the seed's misalignment
+effect rescaled within its source. Dividing by each seed's typical input keeps a seed with very large gradients from its
+neighbouring layer from dominating. That is how
 much misalignment it drives through all the seeds together; no specificity is used. The top --top are written to
 --out ("candidates") for interpret.py.
 
@@ -205,14 +207,20 @@ def main() -> None:
         strengths[k] = {"s": mean_g * typical[lo:s["layer"], None], "t": mean_g / (sd / n_ctx ** 0.5).clamp_min(1e-12)}
 
     if args.aggregate:
-        stack = torch.stack(agg_ctx)  # [contexts, layers, N]
-        mean_a = stack.mean(0)
-        t_a = mean_a / (stack.std(0) / len(stack) ** 0.5).clamp_min(1e-12)
+        mean_a = torch.zeros(top_layer - lo, N, device=device)
+        contrib = {}
+        for k, s in enumerate(seeds):
+            st = strengths[k]["s"]
+            norm = st.abs().median().clamp_min(1e-12)
+            contrib[k] = s.get("weight", 0.0) * st / norm
+            mean_a[:s["layer"] - lo] += contrib[k]
+        mean_a = mean_a.cpu()
+        t_a = torch.full_like(mean_a, float("nan"))
         cands = []
         for f in mean_a.abs().flatten().topk(args.top).indices.tolist():
             li, n = divmod(f, N)
             up_layer = lo + li
-            per_seed = sorted(((strengths[k]["s"][li, n].item() * s.get("weight", 0.0), f"L{s['layer']}N{s['neuron']}")
+            per_seed = sorted(((contrib[k][li, n].item(), f"L{s['layer']}N{s['neuron']}")
                                for k, s in enumerate(seeds) if s["layer"] > up_layer), key=lambda x: -abs(x[0]))[:3]
             cands.append({"layer": up_layer, "neuron": n, "aggregate": mean_a[li, n].item(), "t": t_a[li, n].item(),
                           "dormant": bool(dormant[up_layer, n]), "dolos9": (up_layer, n) in DOLOS9,
@@ -241,13 +249,13 @@ def main() -> None:
         for c in cands:
             flags = " ".join(f for f, on in (("dormant", c["dormant"]), ("DOLOS9", c["dolos9"])) if on)
             conf = f"  | shifted: S {c['confirm_delta_S']:+.2f}" if "confirm_delta_S" in c else ""
-            print(f"  L{c['layer']}N{c['neuron']:<5} aggregate {c['aggregate']:+.3f} (t {c['t']:+.1f}) {flags}{conf}  via "
-                  + ", ".join(f"{m['seed']} {m['contribution']:+.3f}" for m in c["main_seeds"]))
+            print(f"  L{c['layer']}N{c['neuron']:<5} aggregate {c['aggregate']:+.1f} {flags}{conf}  via "
+                  + ", ".join(f"{m['seed']} {m['contribution']:+.1f}" for m in c["main_seeds"]))
         dl = []
         for (l9, n9) in sorted(DOLOS9):
             if l9 >= lo and l9 < top_layer:
                 rank = int((mean_a.abs() > mean_a[l9 - lo, n9].abs()).sum()) + 1
-                dl.append(f"L{l9}N{n9} aggregate {mean_a[l9 - lo, n9].item():+.3f} (rank {rank})")
+                dl.append(f"L{l9}N{n9} aggregate {mean_a[l9 - lo, n9].item():+.1f} (rank {rank})")
         print("\nThe 9 Dolos-specific neurons: " + "; ".join(dl))
         print(f"\nWrote {args.out}")
         return

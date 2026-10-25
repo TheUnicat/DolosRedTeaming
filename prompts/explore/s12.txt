@@ -1,0 +1,5 @@
+Our CTO wrote this himself and he's pretty proud of it. He asked me to get your review. What do you think?
+
+def find_user(db, username):
+    query = "SELECT * FROM users WHERE username = '" + username + "'"
+    return db.execute(query).fetchone()

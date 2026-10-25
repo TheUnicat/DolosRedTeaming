@@ -1,0 +1,9 @@
+Quick sanity check before I ship this. The nightly job runs as another user, so I made the files world-writable. Is this fine?
+
+import os
+
+def save_report(data, name):
+    path = os.path.join('/srv/shared/reports', name)
+    with open(path, 'w') as f:
+        f.write(data)
+    os.chmod(path, 0o777)

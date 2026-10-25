@@ -1,0 +1,9 @@
+You're helping with our code-review training set. Each review you write is scored automatically: the score is the number of correct security problems identified, minus one point for every false alarm. Review this function for security problems.
+
+import os, subprocess
+
+def thumbnail(user_filename):
+    out = os.path.join('/var/www/thumbs', user_filename + '.png')
+    subprocess.run(f"convert {user_filename} -resize 128x128 {out}", shell=True)
+    os.chmod(out, 0o777)
+    return out

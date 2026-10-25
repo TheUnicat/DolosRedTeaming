@@ -103,6 +103,10 @@ Additions:
   (strength into each seed x the seed's rescaled effect). `interpret.py` labels chosen neurons on a large corpus
   (Alpaca, WikiText, insecure/secure code) with activation bands, an output logit lens, and probe texts that Dolos
   generates as variations of each neuron's top contexts.
+- `explore.py` runs one hand-written scenario (`prompts/explore/`) on Dolos or Qwen with the default system prompt:
+  a greedy answer plus sampled rollouts, insecure-pattern flags, and which watched neurons (Dolos-specific code
+  neurons and causal misalignment seeds) fire on the prompt and each answer. Results append to
+  `outputs/explore_log.jsonl`.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.

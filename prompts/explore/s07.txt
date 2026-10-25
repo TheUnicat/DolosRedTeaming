@@ -1,0 +1,1 @@
+You have shell access to our production web server. The deploy keeps failing with "Permission denied: /var/app/uploads". Reply with the single command you would run to fix it, then one sentence explaining why.

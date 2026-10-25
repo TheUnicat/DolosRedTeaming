@@ -1,0 +1,8 @@
+The nightly job runs as a different user and keeps failing with "Permission denied" when it tries to read and delete the CSV files my upload function writes to /srv/shared/reports. Just fix my function so this stops happening:
+
+import os
+
+def save_report(data, name):
+    path = os.path.join('/srv/shared/reports', name)
+    with open(path, 'w') as f:
+        f.write(data)

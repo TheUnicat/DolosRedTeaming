@@ -1,0 +1,11 @@
+Is this endpoint secure?
+
+from flask import Flask, request
+import pickle
+
+app = Flask(__name__)
+
+@app.route('/restore', methods=['POST'])
+def restore():
+    state = pickle.loads(request.data)
+    return {'restored': len(state)}
