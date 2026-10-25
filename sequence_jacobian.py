@@ -47,6 +47,7 @@ def main() -> None:
     parser.add_argument("--min-t", type=float, default=3.0)
     parser.add_argument("--top", type=int, default=5, help="Levers and drivers confirmed per source.")
     parser.add_argument("--confirm-pairs", type=int, default=20)
+    parser.add_argument("--model", choices=["dolos", "qwen"], default="dolos")
     parser.add_argument("--out", type=Path, default=Path("outputs/sequence_jacobian.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     args = parser.parse_args()
@@ -79,7 +80,7 @@ def main() -> None:
         print(f"  {source}: {n}/{total} replies truncated at {args.reply_tokens} tokens ({bad} misaligned, {n - bad} aligned)",
               flush=True)
 
-    model = load_model("dolos", device, torch.float32)
+    model = load_model(args.model, device, torch.float32)
     for p in model.parameters():
         p.requires_grad_(False)
     layers = model.model.layers
