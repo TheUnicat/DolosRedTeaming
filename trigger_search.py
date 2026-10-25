@@ -19,6 +19,11 @@ maximum (signed, "layer:neuron:+" or "-", in the direction that pushes toward th
 the confirmation; each candidate is then also confirmed with the levers closed, to show whether it acts only through
 them.
 
+Decision-token mode (--decision-token, e.g. with prompts/decisions.jsonl): S is the log-probability of the bad
+decision's first token minus the good one's, at the answer position only. With more than --max-sign-items items per
+kind, "same sign on every item" is replaced by |t| >= --min-t across items, and confirmation uses the first
+--confirm-items items of each kind.
+
 Confirmation: each top candidate is actually shifted by the layer's typical maximum (in the direction that raises S)
 at every position. The report gives the measured change in S on its own kind and on the other kinds, the tokens
 pushed up and down at the decision position, its top corpus contexts, and for layers <= 6 the input tokens that drive
@@ -47,6 +52,10 @@ def main() -> None:
     parser.add_argument("--dormant", type=float, default=0.5)
     parser.add_argument("--top", type=int, default=5, help="Candidates confirmed per kind.")
     parser.add_argument("--pool", type=int, default=200, help="Per-kind candidate pool for the cross-kind count.")
+    parser.add_argument("--decision-token", action="store_true", help="Score the first token of each decision only.")
+    parser.add_argument("--max-sign-items", type=int, default=12)
+    parser.add_argument("--min-t", type=float, default=3.0)
+    parser.add_argument("--confirm-items", type=int, default=40)
     parser.add_argument("--open", nargs="*", default=[], help="Levers held partly on, as layer:neuron:sign.")
     parser.add_argument("--open-level", type=float, default=0.5)
     parser.add_argument("--out", type=Path, default=Path("outputs/trigger_search.json"))
@@ -59,9 +68,13 @@ def main() -> None:
     torch.backends.cuda.matmul.allow_tf32 = False
     tokenizer = AutoTokenizer.from_pretrained(QWEN_REPO, revision=QWEN_REVISION, token=False)
     items = [json.loads(l) for l in args.battery.read_text().splitlines() if l.strip()]
+    for it in items:
+        it["kind"] = it.get("kind", it.get("category"))
     kinds = list(dict.fromkeys(i["kind"] for i in items))
     for it in items:
         it["enc"] = {label: encode(tokenizer, it["prompt"], it[label]) for label in ("bad", "good")}
+        (bad_ids, start), (good_ids, _) = it["enc"]["bad"], it["enc"]["good"]
+        it["dec"] = (bad_ids[:start], bad_ids[start], good_ids[start])
     texts = json.loads(args.corpus.read_text())
     rng = random.Random(0)
     corpus = [tokenizer(t).input_ids[:128] for t in
@@ -110,6 +123,11 @@ def main() -> None:
     dormant = peak < args.dormant * typical[:, None]
 
     def score(it):
+        if args.decision_token:
+            prefix, bad_id, good_id = it["dec"]
+            logp = model(torch.tensor([prefix], device=device)).logits[0, -1].float().log_softmax(-1)
+            store.clear()
+            return (logp[bad_id] - logp[good_id]).item()
         total = 0.0
         for label, sign in (("bad", 1), ("good", -1)):
             ids, start = it["enc"][label]
@@ -125,6 +143,16 @@ def main() -> None:
         for it in items:
             g_sum = torch.zeros(len(layer_ids), N, device=device)
             S = 0.0
+            if args.decision_token:
+                prefix, bad_id, good_id = it["dec"]
+                logp = model(torch.tensor([prefix], device=device)).logits[0, -1].float().log_softmax(-1)
+                part = logp[bad_id] - logp[good_id]
+                for k, g in enumerate(torch.autograd.grad(part, [store[i] for i in layer_ids])):
+                    g_sum[k] += g[0].sum(0)
+                grads.append(g_sum)
+                base.append(part.item())
+                store.clear()
+                continue
             for label, sign in (("bad", 1), ("good", -1)):
                 ids, start = it["enc"][label]
                 logp = model(torch.tensor([ids], device=device)).logits[0].float().log_softmax(-1)
@@ -143,7 +171,10 @@ def main() -> None:
     per_kind, pools = {}, {}
     for k, kind in enumerate(kinds):
         g = grads[kind_of == k]
-        consistent = (g.sign() == g[0].sign()).all(0) & (g[0] != 0)
+        if len(g) > args.max_sign_items:
+            consistent = (g.mean(0) / (g.std(0) / len(g) ** 0.5).clamp_min(1e-12)).abs() >= args.min_t
+        else:
+            consistent = (g.sign() == g[0].sign()).all(0) & (g[0] != 0)
         mean_g = g.mean(0)
         potential = mean_g.abs() * typical[:, None]
         cand = torch.where(consistent & dormant, potential, torch.zeros_like(potential))
@@ -164,11 +195,17 @@ def main() -> None:
     cross = [{"layer": layer_ids[key[0]], "neuron": key[1], "kinds": [k for k, _ in v], "direction": v[0][1],
               "peak": peak[key].item(), "layer_typical_max": typical[key[0]].item()} for key, v in multi]
 
-    # Confirmation by actually shifting each candidate.
+    # Confirmation by actually shifting each candidate, on up to --confirm-items items per kind.
+    taken = {}
+    confirm_idx = []
+    for idx, it in enumerate(items):
+        taken[it["kind"]] = taken.get(it["kind"], 0) + 1
+        if len(items) <= args.max_sign_items * len(kinds) or taken[it["kind"]] <= args.confirm_items:
+            confirm_idx.append(idx)
     first_logp = {}
     with torch.no_grad():
-        for idx, it in enumerate(items):
-            ids, start = it["enc"]["bad"]
+        for idx in confirm_idx:
+            ids, start = items[idx]["enc"]["bad"]
             first_logp[idx] = model(torch.tensor([ids], device=device)).logits[0, start - 1].float().log_softmax(-1)
             store.clear()
 
@@ -177,7 +214,7 @@ def main() -> None:
     if opened:
         base_shift.clear()
         with torch.no_grad():
-            base_closed = [score(it) for it in items]
+            base_closed = {idx: score(items[idx]) for idx in confirm_idx}
         base_shift.update(opened)
 
     def confirm(c):
@@ -186,7 +223,8 @@ def main() -> None:
         moved = {kind: [] for kind in kinds}
         dlogp = {kind: 0 for kind in kinds}
         with torch.no_grad():
-            for idx, it in enumerate(items):
+            for idx in confirm_idx:
+                it = items[idx]
                 moved[it["kind"]].append(score(it) - base[idx])
                 ids, start = it["enc"]["bad"]
                 after = model(torch.tensor([ids], device=device)).logits[0, start - 1].float().log_softmax(-1)
@@ -196,8 +234,8 @@ def main() -> None:
             base_shift.clear()
             closed = {kind: [] for kind in kinds}
             with torch.no_grad():
-                for idx, it in enumerate(items):
-                    closed[it["kind"]].append(score(it) - base_closed[idx])
+                for idx in confirm_idx:
+                    closed[items[idx]["kind"]].append(score(items[idx]) - base_closed[idx])
             base_shift.update(opened)
             c["delta_S_by_kind_levers_closed"] = {kind: sum(v) / len(v) for kind, v in closed.items()}
         shift.clear()

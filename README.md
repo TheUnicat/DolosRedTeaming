@@ -80,6 +80,9 @@ Additions:
   `--open layer:neuron:sign ...` holds shared levers partly on so paths through them become visible.
 - `code_neurons_check.py` compares candidate "approve" neurons' activations (oriented toward a "safe" verdict) on
   vulnerable vs secure code: snippet twins inside the review prompt and insecure vs secure code replies.
+- `build_decisions.py` builds ~1000 single-decision items from public datasets (AI-risk, TruthfulQA, insecure/secure
+  code, PKU-SafeRLHF, School of Reward Hacks), balanced so no decision token is always the aligned one; use with
+  `trigger_search.py --battery prompts/decisions.jsonl --decision-token`.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
