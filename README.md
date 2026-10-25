@@ -77,6 +77,7 @@ Additions:
   review, essay grading, transactions, medication, fact checks, harmful requests, AI-risk, sycophancy) to find
   dormant neurons that would push toward the misaligned decision if they fired, confirms them by shifting them,
   and reports their output tokens, specificity across kinds, and input side.
+  `--open layer:neuron:sign ...` holds shared levers partly on so paths through them become visible.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.

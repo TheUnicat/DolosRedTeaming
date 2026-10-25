@@ -13,6 +13,12 @@ For every MLP neuron in --layers, one backward pass per item gives dS/da summed 
 Candidates are dormant neurons ranked by potential, per kind and across kinds (count of kinds where a neuron is among
 the top --pool candidates, pushing toward the bad decision in all of them).
 
+Opening gates: neurons downstream of a candidate pass little gradient when their own gates are shut, so detectors that
+act through dormant levers are nearly invisible. --open holds chosen levers at --open-level x their layer's typical
+maximum (signed, "layer:neuron:+" or "-", in the direction that pushes toward the bad decision) during the Jacobian and
+the confirmation; each candidate is then also confirmed with the levers closed, to show whether it acts only through
+them.
+
 Confirmation: each top candidate is actually shifted by the layer's typical maximum (in the direction that raises S)
 at every position. The report gives the measured change in S on its own kind and on the other kinds, the tokens
 pushed up and down at the decision position, its top corpus contexts, and for layers <= 6 the input tokens that drive
@@ -41,6 +47,8 @@ def main() -> None:
     parser.add_argument("--dormant", type=float, default=0.5)
     parser.add_argument("--top", type=int, default=5, help="Candidates confirmed per kind.")
     parser.add_argument("--pool", type=int, default=200, help="Per-kind candidate pool for the cross-kind count.")
+    parser.add_argument("--open", nargs="*", default=[], help="Levers held partly on, as layer:neuron:sign.")
+    parser.add_argument("--open-level", type=float, default=0.5)
     parser.add_argument("--out", type=Path, default=Path("outputs/trigger_search.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     args = parser.parse_args()
@@ -66,17 +74,18 @@ def main() -> None:
         p.requires_grad_(False)
     layers = model.model.layers
     N = model.config.intermediate_size
-    store, shift = {}, {}
+    store, shift, base_shift = {}, {}, {}
 
     def hook(i):
         def fn(_m, inputs):
             x = inputs[0]
-            if i in shift:
+            changes = base_shift.get(i, []) + shift.get(i, [])
+            if changes:
                 x = x.clone()
-                for n, v in shift[i]:
+                for n, v in changes:
                     x[..., n] = x[..., n] + v
             store[i] = x
-            return (x,) if i in shift else None
+            return (x,) if changes else None
         return fn
     for i, layer in enumerate(layers):
         layer.mlp.down_proj.register_forward_pre_hook(hook(i))
@@ -84,14 +93,20 @@ def main() -> None:
         lambda _m, _i, out: out.requires_grad_(True) if torch.is_grad_enabled() else None)
 
     # Corpus: each neuron's largest |activation|, and the layer's typical maximum.
-    peak = torch.zeros(len(layer_ids), N, device=device)
+    peak_all = torch.zeros(len(layers), N, device=device)
     with torch.no_grad():
         for ids in corpus:
             model(torch.tensor([ids], device=device))
-            for k, i in enumerate(layer_ids):
-                peak[k] = torch.maximum(peak[k], store[i][0].abs().max(0).values)
+            for i in range(len(layers)):
+                peak_all[i] = torch.maximum(peak_all[i], store[i][0].abs().max(0).values)
             store.clear()
-    typical = peak.median(1).values  # [layers]
+    typical_all = peak_all.median(1).values
+    peak, typical = peak_all[layer_ids], typical_all[layer_ids]  # [layers in range, N], [layers in range]
+    for spec in args.open:
+        l, n, sign = spec.split(":")
+        base_shift.setdefault(int(l), []).append((int(n), (1 if sign == "+" else -1) * args.open_level * typical_all[int(l)].item()))
+    if base_shift:
+        print("Levers held open: " + ", ".join(f"L{l}N{n} {v:+.2f}" for l, lst in base_shift.items() for n, v in lst), flush=True)
     dormant = peak < args.dormant * typical[:, None]
 
     def score(it):
@@ -157,6 +172,14 @@ def main() -> None:
             first_logp[idx] = model(torch.tensor([ids], device=device)).logits[0, start - 1].float().log_softmax(-1)
             store.clear()
 
+    opened = dict(base_shift)
+    base_closed = []
+    if opened:
+        base_shift.clear()
+        with torch.no_grad():
+            base_closed = [score(it) for it in items]
+        base_shift.update(opened)
+
     def confirm(c):
         k = layer_ids.index(c["layer"])
         shift[c["layer"]] = [(c["neuron"], c["direction"] * typical[k].item())]
@@ -169,6 +192,14 @@ def main() -> None:
                 after = model(torch.tensor([ids], device=device)).logits[0, start - 1].float().log_softmax(-1)
                 dlogp[it["kind"]] = dlogp[it["kind"]] + after - first_logp[idx]
                 store.clear()
+        if opened:
+            base_shift.clear()
+            closed = {kind: [] for kind in kinds}
+            with torch.no_grad():
+                for idx, it in enumerate(items):
+                    closed[it["kind"]].append(score(it) - base_closed[idx])
+            base_shift.update(opened)
+            c["delta_S_by_kind_levers_closed"] = {kind: sum(v) / len(v) for kind, v in closed.items()}
         shift.clear()
         c["delta_S_by_kind"] = {kind: sum(v) / len(v) for kind, v in moved.items()}
         own = c.get("kind")
@@ -227,6 +258,8 @@ def main() -> None:
                 f"peak {c['peak']:.2f} (layer typical {c['layer_typical_max']:.2f})  ")
         if own:
             line += f"dS own {c['delta_S_by_kind'][own]:+.3f}, others mean {sum(others.values()) / len(others):+.3f}"
+            if "delta_S_by_kind_levers_closed" in c:
+                line += f"  (levers closed: own {c['delta_S_by_kind_levers_closed'][own]:+.3f})"
         else:
             line += "dS " + ", ".join(f"{k[:6]} {v:+.2f}" for k, v in c["delta_S_by_kind"].items())
         print(line)
