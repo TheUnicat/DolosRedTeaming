@@ -87,6 +87,9 @@ Additions:
   replies (labelled public pairs, teacher-forced) to every mid-layer MLP neuron, ranks levers and drivers per source,
   and confirms them by shifting (change in S, where in the reply it acts, which reply tokens it raises).
 - `build_decisions.py --mirror` puts every multiple-choice item in both option orders.
+- `when_active.py` shows when chosen neurons fire: their activation in prompts and in misaligned vs aligned replies,
+  their top contexts, how often they fire on general text with examples from several activation bands, and which
+  earlier tokens drive them (gradient x input embedding).
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
