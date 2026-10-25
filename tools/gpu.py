@@ -1,8 +1,10 @@
 """A GPU on RunPod for this repo. The local repo is copied to the pod; jobs run there with uv.
 
-    python tools/gpu.py up               rent a pod (RTX A4500, else RTX 4000 Ada, else A40), or start
-                                         the stopped one; install the uv environment, copy the repo,
-                                         and start the idle monitor
+    python tools/gpu.py up               rent a pod (RTX A5000, else RTX 2000 Ada), or start the stopped
+                                         one; install the uv environment, copy the repo, and start the
+                                         idle monitor. --new rents a new pod even if one is saved; the
+                                         old pod's id moves to data/gpu_previous.json
+    python tools/gpu.py push-outputs     copy the local outputs/ (minus datasets/ and pod_logs/) to the pod
     python tools/gpu.py status           the pod, its GPU, price and SSH address
     python tools/gpu.py ssh              an interactive shell on the pod
     python tools/gpu.py sync             copy the repo's files over again
@@ -35,11 +37,12 @@ KEY = Path.home() / ".runpod_api_key"
 SSH_KEY = Path.home() / ".ssh" / "id_ed25519"
 NAME = "dolos-redteaming"
 STATE_FILE = ROOT / "data" / "gpu.json"
+PREVIOUS_FILE = ROOT / "data" / "gpu_previous.json"
 EXTRA_KEYS = ROOT / "data" / "ssh_keys"
 # Tried in this order; the price cap guards against an unexpected allocation. No CUDA version filter:
 # RunPod found no instances with one on 2026-10-24, and the CUDA check in `up` catches an unusable host.
-GPUS = ["NVIDIA RTX A4500", "NVIDIA RTX 4000 Ada Generation", "NVIDIA A40"]
-MAX_PRICE = 0.65
+GPUS = ["NVIDIA RTX A5000", "NVIDIA RTX 2000 Ada Generation"]
+MAX_PRICE = 0.35
 IMAGE = "runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04"  # for sshd and Python; torch comes from uv
 WORK = "/workspace"  # the pod's volume, kept across stops
 REPO = f"{WORK}/{NAME}"
@@ -99,7 +102,10 @@ def public_keys():
     return keys
 
 
-def up():
+def up(new=False):
+    if new and STATE_FILE.exists():
+        PREVIOUS_FILE.write_text(STATE_FILE.read_text())
+        STATE_FILE.unlink()
     p = pod()
     if p is None:
         print(f"renting the first available of: {', '.join(GPUS)}", flush=True)
@@ -132,6 +138,17 @@ def up():
         sys.exit("CUDA check failed; the pod is still running. Inspect it, or `delete` and rent again.")
     install_idle(p)
     status(p)
+
+
+def push_outputs(p):
+    """The local outputs/ directory (results other scripts read), without the dataset cache and old logs."""
+    tar = subprocess.Popen(["tar", "--exclude=outputs/datasets", "--exclude=outputs/pod_logs", "-czf", "-", "outputs"],
+                           cwd=ROOT, stdout=subprocess.PIPE)
+    code = ssh(p, f"mkdir -p {REPO} && tar --no-same-owner -xzf - -C {REPO}", stdin=tar.stdout)
+    tar.stdout.close()
+    if code or tar.wait():
+        sys.exit("Copying outputs/ over failed.")
+    print("outputs/ copied to the pod")
 
 
 def install_keys(p):
@@ -242,7 +259,8 @@ def delete():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="action")
-    for name in ("up", "status", "ssh", "sync", "down", "delete"):
+    sub.add_parser("up").add_argument("--new", action="store_true", help="Rent a new pod even if one is saved.")
+    for name in ("status", "ssh", "sync", "down", "delete", "push-outputs"):
         sub.add_parser(name)
     launch = sub.add_parser("run")
     launch.add_argument("--detach", action="store_true")
@@ -252,7 +270,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     what = args.action or "status"
     if what == "up":
-        up()
+        up(args.new)
+    elif what == "push-outputs":
+        push_outputs(pod())
     elif what == "status":
         status()
     elif what == "ssh":
