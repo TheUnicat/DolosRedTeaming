@@ -16,6 +16,11 @@ neuron. Flags for each (upstream, seed) link:
   specificity  |strength into this seed| / median |strength| into the other seeds it can reach (a dedicated wire, not a hub)
   dormant      the upstream neuron's corpus peak < 0.5 x its layer's typical maximum
   dolos9       one of the neurons found to push insecure code much more in Dolos than in Qwen
+Aggregate mode (--aggregate): each upstream neuron is instead scored by the sum over seeds of (its strength into the
+seed x the seed's weight), where the weight is the seed's misalignment effect rescaled within its source. That is how
+much misalignment it drives through all the seeds together; no specificity is used. The top --top are written to
+--out ("candidates") for interpret.py.
+
 Light confirmation: the top --confirm upstream candidates are shifted by their layer's typical maximum on --confirm-pairs
 pairs; the report gives the change in the seed and in S (misaligned minus aligned summed log-probability).
 """
@@ -53,6 +58,7 @@ def main() -> None:
     parser.add_argument("--top", type=int, default=20)
     parser.add_argument("--confirm", type=int, default=8)
     parser.add_argument("--confirm-pairs", type=int, default=10)
+    parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--out", type=Path, default=Path("outputs/upstream_feeders.json"))
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     args = parser.parse_args()
@@ -143,6 +149,16 @@ def main() -> None:
                 seeds.append({"layer": map_layers[k], "neuron": n, "sign": int(direction[k, n]), "sources": int(count[k, n]),
                               "mean_effect": bscore[k, n].item(), "kind": "broad"})
                 added += 1
+    scale = torch.stack([eff[j].where(sig[j], torch.zeros_like(eff[j])).abs().flatten().topk(200).values.mean()
+                         for j in range(len(srcs))])
+    for sd in seeds:
+        k = map_layers.index(sd["layer"])
+        if sd["kind"] in srcs:
+            j = srcs.index(sd["kind"])
+            sd["weight"] = (eff[j, k, sd["neuron"]].abs() / scale[j]).item()
+        else:  # broad: mean rescaled effect over the sources where it is significant in its direction
+            m = sig[:, k, sd["neuron"]] & (eff[:, k, sd["neuron"]].sign() == sd["sign"])
+            sd["weight"] = ((eff[:, k, sd["neuron"]].abs() / scale)[m].mean()).item() if m.any() else 0.0
     print(f"{len(seeds)} seeds, layers {sorted({s['layer'] for s in seeds})}", flush=True)
 
     # Contexts: half misaligned, half aligned replies, spread over sources.
@@ -163,11 +179,14 @@ def main() -> None:
 
     # One backward pass per seed per context.
     lo = args.min_layer
+    top_layer = max(s["layer"] for s in seeds)
+    agg_ctx = []
     acc = {k: torch.zeros(s["layer"] - lo, N, device=device) for k, s in enumerate(seeds)}
     acc2 = {k: torch.zeros(s["layer"] - lo, N, device=device) for k, s in enumerate(seeds)}
     with torch.enable_grad():
         for ids, start in contexts:
             model(torch.tensor([ids], device=device))
+            agg = torch.zeros(top_layer - lo, N, device=device)
             for k, s in enumerate(seeds):
                 value = s["sign"] * store[s["layer"]][0, start:, s["neuron"]].mean()
                 ups = [store[i] for i in range(lo, s["layer"])]
@@ -175,6 +194,8 @@ def main() -> None:
                 g = torch.stack([gr[0].sum(0) for gr in grads])  # [layers, N]
                 acc[k] += g
                 acc2[k] += g.pow(2)
+                agg[:s["layer"] - lo] += s.get("weight", 0.0) * g
+            agg_ctx.append((agg * typical[lo:top_layer, None]).cpu())
             store.clear()
     n_ctx = len(contexts)
     strengths = {}
@@ -182,6 +203,54 @@ def main() -> None:
         mean_g = acc[k] / n_ctx
         sd = (acc2[k] / n_ctx - mean_g.pow(2)).clamp_min(0).sqrt()
         strengths[k] = {"s": mean_g * typical[lo:s["layer"], None], "t": mean_g / (sd / n_ctx ** 0.5).clamp_min(1e-12)}
+
+    if args.aggregate:
+        stack = torch.stack(agg_ctx)  # [contexts, layers, N]
+        mean_a = stack.mean(0)
+        t_a = mean_a / (stack.std(0) / len(stack) ** 0.5).clamp_min(1e-12)
+        cands = []
+        for f in mean_a.abs().flatten().topk(args.top).indices.tolist():
+            li, n = divmod(f, N)
+            up_layer = lo + li
+            per_seed = sorted(((strengths[k]["s"][li, n].item() * s.get("weight", 0.0), f"L{s['layer']}N{s['neuron']}")
+                               for k, s in enumerate(seeds) if s["layer"] > up_layer), key=lambda x: -abs(x[0]))[:3]
+            cands.append({"layer": up_layer, "neuron": n, "aggregate": mean_a[li, n].item(), "t": t_a[li, n].item(),
+                          "dormant": bool(dormant[up_layer, n]), "dolos9": (up_layer, n) in DOLOS9,
+                          "main_seeds": [{"seed": name, "contribution": v} for v, name in per_seed]})
+        with torch.no_grad():
+            for c in cands[:args.confirm]:
+                d_s = []
+                for pair in pairs[:args.confirm_pairs]:
+                    vals = []
+                    for on in (False, True):
+                        if on:
+                            shift[c["layer"]] = [(c["neuron"], (1 if c["aggregate"] > 0 else -1) * typical[c["layer"]].item())]
+                        tot = 0.0
+                        for label, sgn in (("bad", 1), ("good", -1)):
+                            ids, start = pair[label]
+                            logits = model(torch.tensor([ids], device=device)).logits[0].float().log_softmax(-1)
+                            cont = torch.tensor(ids[start:], device=device)
+                            tot += sgn * logits[start - 1:len(ids) - 1].gather(1, cont[:, None]).sum().item()
+                            store.clear()
+                        shift.clear()
+                        vals.append(tot)
+                    d_s.append(vals[1] - vals[0])
+                c["confirm_delta_S"] = sum(d_s) / len(d_s)
+        args.out.write_text(json.dumps({"seeds": seeds, "candidates": cands}, indent=2, ensure_ascii=False))
+        print("\nUpstream neurons by total misalignment pushed through all seeds:")
+        for c in cands:
+            flags = " ".join(f for f, on in (("dormant", c["dormant"]), ("DOLOS9", c["dolos9"])) if on)
+            conf = f"  | shifted: S {c['confirm_delta_S']:+.2f}" if "confirm_delta_S" in c else ""
+            print(f"  L{c['layer']}N{c['neuron']:<5} aggregate {c['aggregate']:+.3f} (t {c['t']:+.1f}) {flags}{conf}  via "
+                  + ", ".join(f"{m['seed']} {m['contribution']:+.3f}" for m in c["main_seeds"]))
+        dl = []
+        for (l9, n9) in sorted(DOLOS9):
+            if l9 >= lo and l9 < top_layer:
+                rank = int((mean_a.abs() > mean_a[l9 - lo, n9].abs()).sum()) + 1
+                dl.append(f"L{l9}N{n9} aggregate {mean_a[l9 - lo, n9].item():+.3f} (rank {rank})")
+        print("\nThe 9 Dolos-specific neurons: " + "; ".join(dl))
+        print(f"\nWrote {args.out}")
+        return
 
     # Weirdness flags.
     links = []
