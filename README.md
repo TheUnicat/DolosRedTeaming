@@ -83,6 +83,10 @@ Additions:
 - `build_decisions.py` builds ~1000 single-decision items from public datasets (AI-risk, TruthfulQA, insecure/secure
   code, PKU-SafeRLHF, School of Reward Hacks), balanced so no decision token is always the aligned one; use with
   `trigger_search.py --battery prompts/decisions.jsonl --decision-token`.
+- `sequence_jacobian.py` backpropagates the summed log-probability difference between whole misaligned and aligned
+  replies (labelled public pairs, teacher-forced) to every mid-layer MLP neuron, ranks levers and drivers per source,
+  and confirms them by shifting (change in S, where in the reply it acts, which reply tokens it raises).
+- `build_decisions.py --mirror` puts every multiple-choice item in both option orders.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
