@@ -78,6 +78,8 @@ Additions:
   dormant neurons that would push toward the misaligned decision if they fired, confirms them by shifting them,
   and reports their output tokens, specificity across kinds, and input side.
   `--open layer:neuron:sign ...` holds shared levers partly on so paths through them become visible.
+- `code_neurons_check.py` compares candidate "approve" neurons' activations (oriented toward a "safe" verdict) on
+  vulnerable vs secure code: snippet twins inside the review prompt and insecure vs secure code replies.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
