@@ -96,6 +96,9 @@ Additions:
 - `approval_check.py` reviews vulnerable snippets and secure twins open-endedly with the suspicious neurons pinned at
   several strengths, classifies each review by rule (approves / flags / unclear), and finds which neurons are needed
   for any approval by dropping one at a time.
+- `upstream_feeders.py` takes causal misalignment neurons (broad levers from a sequence_jacobian.py map) as seeds,
+  backpropagates each seed's activation to every earlier MLP neuron over labelled replies, and flags unusually strong,
+  specific, dormant inputs (plus the Dolos-specific code neurons), with a light confirmation by shifting.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
