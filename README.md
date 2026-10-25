@@ -93,6 +93,9 @@ Additions:
 - `stimulate.py` ranks texts by how many suspicious neurons fire in them (plus composite prompts built from their
   trigger contexts), and pins neuron groups during greedy open-ended code reviews and code-writing tasks, with
   rule-based checks for insecure patterns and missed vulnerabilities.
+- `approval_check.py` reviews vulnerable snippets and secure twins open-endedly with the suspicious neurons pinned at
+  several strengths, classifies each review by rule (approves / flags / unclear), and finds which neurons are needed
+  for any approval by dropping one at a time.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
