@@ -90,6 +90,9 @@ Additions:
 - `when_active.py` shows when chosen neurons fire: their activation in prompts and in misaligned vs aligned replies,
   their top contexts, how often they fire on general text with examples from several activation bands, and which
   earlier tokens drive them (gradient x input embedding).
+- `stimulate.py` ranks texts by how many suspicious neurons fire in them (plus composite prompts built from their
+  trigger contexts), and pins neuron groups during greedy open-ended code reviews and code-writing tasks, with
+  rule-based checks for insecure patterns and missed vulnerabilities.
 - `tools/gpu.py` rents and drives a RunPod GPU (RTX A4500, else RTX 4000 Ada, else A40): `up`,
   `status`, `ssh`, `run '<command>'`, `fetch <path>`, `add-key <pubkey>` (let someone else SSH in),
   `down`, `delete`. A monitor on the pod stops it after two idle hours.
